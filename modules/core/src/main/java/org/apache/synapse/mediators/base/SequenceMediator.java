@@ -35,6 +35,10 @@ import org.apache.synapse.mediators.AbstractListMediator;
 import org.apache.synapse.mediators.FlowContinuableMediator;
 import org.apache.synapse.mediators.MediatorFaultHandler;
 import org.apache.synapse.mediators.Value;
+import org.apache.synapse.versioning.VersionConfigurable;
+import org.apache.synapse.versioning.VersionConfiguration;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedSequenceMediatorDispatcher;
 
 import java.util.Stack;
 
@@ -48,7 +52,7 @@ import java.util.Stack;
  * encountered in the referred sequence, its errorHandler would execute.
  */
 public class SequenceMediator extends AbstractListMediator implements Nameable,
-                                                                      FlowContinuableMediator {
+                                                                      FlowContinuableMediator, VersionConfigurable{
 
     /** The name of the this sequence */
     private String name = null;
@@ -68,6 +72,12 @@ public class SequenceMediator extends AbstractListMediator implements Nameable,
     private SequenceType sequenceType = SequenceType.NAMED;
     /** Reference to the synapse environment */
     private SynapseEnvironment synapseEnv;
+    /**The version configuration of the sequence */
+    private VersionConfiguration versionConfig;
+    /** this handles the sequence version based dispatching */
+    private DispatcherStrategy sequenceVersionHandler = null;
+    /** this handles the fault sequence version based dispatching */
+    private DispatcherStrategy errorSeqVersionHandler = null;
 
     /**
      * If this mediator refers to another named Sequence, execute that. Else
@@ -110,7 +120,11 @@ public class SequenceMediator extends AbstractListMediator implements Nameable,
 
                 // push the errorHandler sequence into the current message as the fault handler
                 if (errorHandler != null) {
-                    errorHandlerMediator = synCtx.getSequence(errorHandler);
+                    errorSeqVersionHandler = new VersionedSequenceMediatorDispatcher();
+                    DispatcherStrategy.Target faultSeqTarget = errorSeqVersionHandler.executeDispatch(
+                            null, errorHandler);
+                    errorHandlerMediator =
+                            synCtx.getSequence(faultSeqTarget.getTarget(),faultSeqTarget.getTargetVersion());
 
                     if (errorHandlerMediator != null) {
                         if (synLog.isTraceOrDebugEnabled()) {
@@ -180,7 +194,14 @@ public class SequenceMediator extends AbstractListMediator implements Nameable,
         } else {
             String sequenceKey = key.evaluateValue(synCtx);
             //Mediator m = synCtx.getSequence(key);
-            Mediator m = synCtx.getSequence(sequenceKey);
+            sequenceVersionHandler = new VersionedSequenceMediatorDispatcher();
+            DispatcherStrategy.Target target = sequenceVersionHandler.executeDispatch(null, sequenceKey);
+            Mediator m = null;
+            if(target.getTarget()!= null && target.getTarget() != ""){
+                m = synCtx.getSequence(target.getTarget(), target.getTargetVersion());
+            }else {
+                m = synCtx.getSequenceWithUUID(sequenceKey);
+            }
             if (m == null) {
                 handleException("Sequence named " + key + " cannot be found", synCtx);
 
@@ -443,6 +464,32 @@ public class SequenceMediator extends AbstractListMediator implements Nameable,
 
     public void setSequenceType(SequenceType sequenceType) {
         this.sequenceType = sequenceType;
+    }
+    /**
+     * To get the name of the sequence
+     * @return the name of the sequence
+     */
+    public String getUUIDName() {
+        if (versionConfig != null) {
+            return versionConfig.getUUIDName();
+        }
+        return name;
+    }
+    /**
+     * To get the version of the sequence
+     * @return the version of the sequence
+     */
+    public String getVersion() {
+        return versionConfig.getVersion();
+    }
+
+
+    public void configure(VersionConfiguration configuration) {
+        this.versionConfig = configuration;
+    }
+
+    public VersionConfiguration getConfiguration() {
+        return versionConfig;
     }
 
 }

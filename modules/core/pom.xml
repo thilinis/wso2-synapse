@@ -142,6 +142,7 @@
 						<Bundle-SymbolicName>${pom.artifactId}</Bundle-SymbolicName>
 						<Export-Package>
 							org.apache.synapse,
+                            org.apache.synapse.versioning.*,
 							org.apache.synapse.aspects.*,
 							org.apache.synapse.deployers.*,
 							org.apache.synapse.executors.*,

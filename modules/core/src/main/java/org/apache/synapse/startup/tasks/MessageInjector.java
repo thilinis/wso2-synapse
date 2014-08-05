@@ -39,6 +39,9 @@ import org.apache.synapse.mediators.MediatorFaultHandler;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.apache.synapse.task.Task;
 import org.apache.synapse.util.PayloadHelper;
+import org.apache.synapse.versioning.ArtifactVersionIdGenerator;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedProxyServiceDispatcher;
 
 /**
  * Injects a Message into a named sequence or a proxy service configured in the Synapse
@@ -76,6 +79,10 @@ public class MessageInjector implements Task, ManagedLifecycle {
      * Holds the SynapseEnv to which the message will be injected
      */
     private SynapseEnvironment synapseEnvironment;
+    /**
+     * Versioned ProxyService Dispatcher
+     */
+    private VersionedProxyServiceDispatcher versionedProxyServiceDispatcher = new VersionedProxyServiceDispatcher();
 
     public final static String SOAP11_FORMAT = "soap11";
     public final static String SOAP12_FORMAT = "soap12";
@@ -211,8 +218,10 @@ public class MessageInjector implements Task, ManagedLifecycle {
             axis2MsgCtx.setServerSide(true);
 
             try {
+                DispatcherStrategy.Target target = versionedProxyServiceDispatcher.
+                        executeDispatch(axis2MsgCtx, proxyName);
                 AxisService axisService = configurationContext.getAxisConfiguration().
-                        getService(proxyName);
+                        getService(ArtifactVersionIdGenerator.getArtifactVersionKey(target.getTarget(), target.getTargetVersion()));
                 if (axisService == null) {
                     handleError("Proxy Service: " + proxyName + " not found");
                 }

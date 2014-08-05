@@ -45,25 +45,33 @@ public class    MessageProcessorDeployer extends AbstractSynapseArtifactDeployer
             MessageProcessor mp = MessageProcessorFactory.createMessageProcessor(artifactConfig);
             if(mp != null) {
                 mp.setFileName((new File(fileName)).getName());
-                 if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("Message Processor named '" + mp.getName()
                             + "' has been built from the file " + fileName);
                 }
-                mp.init(getSynapseEnvironment());
-                if (log.isDebugEnabled()) {
-                    log.debug("Initialized the Message Processor : " + mp.getName());
+
+                if(getSynapseConfiguration().getMessageStore(mp.getMessageStoreName(),mp.getVersion() ) != null) {
+                    mp.init(getSynapseEnvironment());
+                } else {
+                    handleSynapseArtifactDeploymentError("Message Processor Deployment from the file :" +
+                            fileName + " : Failed. Can not create a Message processor without a Message Store");
                 }
-                getSynapseConfiguration().addMessageProcessor(mp.getName(), mp);
+
+
+                if (log.isDebugEnabled()) {
+                    log.debug("Initialized the Message Processor : " + mp.getName()+ " [version = " + mp.getVersion() + "]");
+                }
+                getSynapseConfiguration().addMessageProcessor(mp.getName(),mp.getVersion(), mp);
                 if (log.isDebugEnabled()) {
                     log.debug("Message Processor Deployment from file : " + fileName +
                             " : Completed");
                 }
-                log.info("Message Processor named '" + mp.getName()
+                log.info("Message Processor named '" + mp.getName()+ " [version = " + mp.getVersion() + "]"
                         + "' has been deployed from file : " + fileName);
-                return mp.getName();
+                return mp.getUUIDName();
             } else {
                 handleSynapseArtifactDeploymentError("Message Processor Deployment from the file : "
-                    + fileName + " : Failed. The artifact " +
+                        + fileName + " : Failed. The artifact " +
                         "described in the file  is not a Message Processor");
             }
 
@@ -78,7 +86,7 @@ public class    MessageProcessorDeployer extends AbstractSynapseArtifactDeployer
     @Override
     public String updateSynapseArtifact(OMElement artifactConfig, String fileName,
                                         String existingArtifactName, Properties properties) {
-       if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("Message Processor update from file : " + fileName + " has started");
         }
 
@@ -93,7 +101,7 @@ public class    MessageProcessorDeployer extends AbstractSynapseArtifactDeployer
 
             if (log.isDebugEnabled()) {
                 log.debug("MessageProcessor: " + mp.getName() + " has been built from the file: "
-                        + fileName);
+                        + " [version = " + mp.getVersion() + "]"+ fileName);
             }
 
 
@@ -104,15 +112,16 @@ public class    MessageProcessorDeployer extends AbstractSynapseArtifactDeployer
             // and remove the old one
 
             mp.init(getSynapseEnvironment());
-
-            getSynapseConfiguration().removeMessageProcessor(existingArtifactName);
+            getSynapseConfiguration().addMessageProcessor(mp.getName(),mp.getVersion(), mp);
+            getSynapseConfiguration().removeMessageProcessorWithUUID(existingArtifactName);
             log.info("MessageProcessor: " + existingArtifactName + " has been undeployed");
 
-            getSynapseConfiguration().addMessageProcessor(mp.getName(), mp);
-            log.info("MessageProcessor: " + mp.getName() + " has been updated from the file: " + fileName);
+
+            log.info("MessageProcessor: " + mp.getName() + " [version = " + mp.getVersion() + "]"
+                    + " has been updated from the file: " + fileName);
 
             waitForCompletion();
-            return mp.getName();
+            return mp.getUUIDName();
 
         } catch (DeploymentException e) {
             handleSynapseArtifactDeploymentError("Error while updating the MessageProcessor from the " +
@@ -124,7 +133,7 @@ public class    MessageProcessorDeployer extends AbstractSynapseArtifactDeployer
 
     @Override
     public void undeploySynapseArtifact(String artifactName) {
-         if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("MessageProcessor Undeployment of the MessageProcessor named : "
                     + artifactName + " : Started");
         }
@@ -133,23 +142,24 @@ public class    MessageProcessorDeployer extends AbstractSynapseArtifactDeployer
             MessageProcessor mp =
                     getSynapseConfiguration().getMessageProcessors().get(artifactName);
             if (mp != null) {
-                getSynapseConfiguration().removeMessageProcessor(artifactName);
+                getSynapseConfiguration().removeMessageProcessorWithUUID(artifactName);
                 if (log.isDebugEnabled()) {
-                    log.debug("Destroying the MessageProcessor named : " + artifactName);
+                    log.debug("Destroying the MessageProcessor named : " + artifactName
+                            + " [version = " + mp.getVersion() + "]");
                 }
                 mp.destroy();
                 if (log.isDebugEnabled()) {
                     log.debug("MessageProcessor Undeployment of the endpoint named : "
-                            + artifactName + " : Completed");
+                            + artifactName  + " [version = " + mp.getVersion() + "]"+ " : Completed");
                 }
-                log.info("MessageProcessor named '" + mp.getName() + "' has been undeployed");
+                log.info("MessageProcessor named '" + mp.getName() + " [version = " + mp.getVersion() + "]" + "' has been undeployed");
             } else if (log.isDebugEnabled()) {
                 log.debug("MessageProcessor " + artifactName + " has already been undeployed");
             }
         } catch (Exception e) {
             handleSynapseArtifactDeploymentError(
                     "MessageProcessor Undeployement of MessageProcessor named : "
-                    + artifactName + " : Failed", e);
+                            + artifactName + " : Failed", e);
         }
     }
 

@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.SynapseException;
 import org.apache.synapse.config.xml.MultiXMLConfigurationBuilder;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.XMLConfigurationBuilder;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.apache.synapse.mediators.builtin.DropMediator;
@@ -55,12 +56,14 @@ public class SynapseConfigurationBuilder {
         mainMediator.addChild(new LogMediator());
         mainMediator.addChild(new DropMediator());
         mainMediator.setName(SynapseConstants.MAIN_SEQUENCE_KEY);
+        mainMediator.configure(new VersionFactory().createVersionConfig(mainMediator.getName(), null));
         config.addSequence(SynapseConstants.MAIN_SEQUENCE_KEY, mainMediator);
         SequenceMediator faultMediator = new SequenceMediator();
         LogMediator fault = new LogMediator();
         fault.setLogLevel(LogMediator.FULL);
         faultMediator.addChild(fault);
         faultMediator.setName(SynapseConstants.FAULT_SEQUENCE_KEY);
+        faultMediator.configure(new VersionFactory().createVersionConfig(SynapseConstants.FAULT_SEQUENCE_KEY, null)) ;
         config.addSequence(SynapseConstants.FAULT_SEQUENCE_KEY, faultMediator);
         config.setDescription("The default configuration of the ESB, that is created " +
                 "programatically at the startup");

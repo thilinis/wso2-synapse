@@ -24,12 +24,13 @@ import org.apache.synapse.Nameable;
 import org.apache.synapse.SynapseArtifact;
 import org.apache.synapse.message.MessageConsumer;
 import org.apache.synapse.message.MessageProducer;
+import org.apache.synapse.versioning.VersionConfigurable;
 
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
-public interface MessageStore extends ManagedLifecycle, Nameable, SynapseArtifact {
+public interface MessageStore extends ManagedLifecycle, Nameable, SynapseArtifact, VersionConfigurable {
     /**
      * Returns a Message Producer for this message store. <br/>
      * @return  A non-null message producer that can produce messages to this message store.
@@ -130,4 +131,16 @@ public interface MessageStore extends ManagedLifecycle, Nameable, SynapseArtifac
      * @return Message with given ID
      */
     public MessageContext get(String messageId);
+    /**
+     * Get the uuid name of the message store
+     * @return  the uuid
+     */
+    public String getUUIDName();
+
+    /**
+     *  Get the version of the message store
+     * @return  the version of the message store
+     */
+
+    public String getVersion();
 }

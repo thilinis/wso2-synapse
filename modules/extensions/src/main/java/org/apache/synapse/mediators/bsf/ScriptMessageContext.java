@@ -325,12 +325,28 @@ public class ScriptMessageContext implements MessageContext {
         return mc.getMainSequence();
     }
 
+    public Mediator getMainSequence(String version) {
+        return mc.getMainSequence(version);
+    }
+
     public Mediator getFaultSequence() {
         return mc.getFaultSequence();
     }
 
+    public Mediator getFaultSequence(String version) {
+        return mc.getFaultSequence(version);
+    }
+
     public Mediator getSequence(String key) {
         return mc.getSequence(key);
+    }
+
+    public Mediator getSequence(String name, String version) {
+        return mc.getSequence(name, version);
+    }
+
+    public Mediator getSequenceWithUUID(String uuid) {
+        return mc.getSequenceWithUUID(uuid);
     }
 
     public OMElement getFormat(String s) {
@@ -509,6 +525,14 @@ public class ScriptMessageContext implements MessageContext {
 
     public Mediator getSequenceTemplate(String key) {
         return mc.getSequenceTemplate(key);
+    }
+
+    public Endpoint getEndpointWithUUID(String uuid) {
+        return mc.getEndpointWithUUID(uuid);
+    }
+
+    public Endpoint getEndpoint(String name, String version) {
+        return mc.getEndpoint(name, version);
     }
 
     private String serializeJSON(Object obj) {

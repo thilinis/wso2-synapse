@@ -19,6 +19,7 @@
 
 package org.apache.synapse.config.xml.endpoints;
 
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.endpoints.ResolvingEndpoint;
 import org.apache.synapse.config.xml.SynapseXPathFactory;
@@ -50,6 +51,7 @@ public class ResolvingEndpointFactory extends EndpointFactory {
         String name = epConfig.getAttributeValue(new QName("name"));
         if (name != null) {
             resolvingEndpoint.setName(name);
+            resolvingEndpoint.configure(new VersionFactory().createVersionConfig(name, epConfig));
         }
         try {
             resolvingEndpoint.setKeyExpression(

@@ -26,6 +26,7 @@ import org.apache.synapse.config.SynapseConfiguration;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.apache.synapse.message.MessageConsumer;
 import org.apache.synapse.message.processor.MessageProcessor;
+import org.apache.synapse.versioning.VersionConfiguration;
 
 import java.util.Map;
 
@@ -57,6 +58,10 @@ public abstract class AbstractMessageProcessor implements MessageProcessor {
 
     /**message store parameters */
     protected Map<String, Object> parameters = null;
+    /**
+     * The version configuration of the messageStore
+     */
+    private VersionConfiguration versionConfig;
 
     public void init(SynapseEnvironment se) {
         configuration = se.getSynapseConfiguration();
@@ -131,5 +136,31 @@ public abstract class AbstractMessageProcessor implements MessageProcessor {
 
     public String getTargetEndpoint() {
         return targetEndpoint;
+    }
+    /**
+     * To get the uuid of the message processor
+     * @return the uuid of the message processor
+     */
+    public String getUUIDName() {
+        if (versionConfig != null) {
+            return versionConfig.getUUIDName();
+        }
+        return name;
+    }
+    /**
+     * To get the version of the message processor
+     * @return the version of the message processor
+     */
+    public String getVersion() {
+        return versionConfig.getVersion();
+    }
+
+
+    public void configure(VersionConfiguration configuration) {
+        this.versionConfig = configuration;
+    }
+
+    public VersionConfiguration getConfiguration() {
+        return versionConfig;
     }
 }

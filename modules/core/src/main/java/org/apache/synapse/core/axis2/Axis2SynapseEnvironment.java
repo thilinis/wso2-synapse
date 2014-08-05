@@ -47,11 +47,15 @@ import org.apache.synapse.mediators.MediatorFaultHandler;
 import org.apache.synapse.mediators.MediatorWorker;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.apache.synapse.rest.RESTRequestHandler;
+import org.apache.synapse.rest.RESTUtils;
 import org.apache.synapse.task.SynapseTaskManager;
 import org.apache.synapse.transport.passthru.util.RelayUtils;
 import org.apache.synapse.util.concurrent.SynapseThreadPool;
 import org.apache.synapse.util.xpath.ext.SynapseXpathFunctionContextProvider;
 import org.apache.synapse.util.xpath.ext.SynapseXpathVariableResolver;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedMainSequenceDispatcher;
+import org.apache.synapse.versioning.dispatch.VersionedSequenceMediatorDispatcher;
 
 import javax.xml.namespace.QName;
 import java.util.ArrayList;
@@ -75,6 +79,7 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
     private boolean initialized = false;
     private SynapseTaskManager taskManager;
     private RESTRequestHandler restHandler;
+    private DispatcherStrategy seqenceVersionHandler, mainVersionHandler, faultVersionHandler;
 
     /** The StatisticsCollector object */
     private StatisticsCollector statisticsCollector = new StatisticsCollector();
@@ -132,6 +137,8 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
 
         taskManager = new SynapseTaskManager();
         restHandler = new RESTRequestHandler();
+        seqenceVersionHandler = new VersionedSequenceMediatorDispatcher();
+        mainVersionHandler = new VersionedMainSequenceDispatcher();
     }
 
     public Axis2SynapseEnvironment(ConfigurationContext cfgCtx,
@@ -208,7 +215,8 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
                     log.debug("Using Sequence with name: " + receivingSequence
                             + " for injected message");
                 }
-                Mediator seqMediator = synCtx.getSequence(receivingSequence);
+                DispatcherStrategy.Target target = seqenceVersionHandler.executeDispatch(null, receivingSequence);
+                Mediator seqMediator = synCtx.getSequence(target.getTarget(), target.getTargetVersion());
                 if (seqMediator != null) {
                     return seqMediator.mediate(synCtx);
                 } else {
@@ -225,21 +233,45 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
                 if (log.isDebugEnabled()) {
                     log.debug("Using Main Sequence for injected message");
                 }
-                return synCtx.getMainSequence().mediate(synCtx);
+                if(RESTUtils.getFullRequestPath(synCtx) != null ){
+                    DispatcherStrategy.Target mainSequenceTarget =
+                            mainVersionHandler.executeDispatch(synCtx, RESTUtils.getFullRequestPath(synCtx));
+
+                    Mediator mainSeq = synCtx.getMainSequence(mainSequenceTarget.getTargetVersion());
+
+                    if (mainSeq != null) {
+                        return mainSeq.mediate(synCtx);
+                    }else {
+                        //if no versioned main sequence found fall back to default main
+                        return synCtx.getMainSequence().mediate(synCtx);
+                    }
+
+                }else{
+                    return synCtx.getMainSequence().mediate(synCtx);
+                }
             }
         }
 
-        ProxyService proxyService = synCtx.getConfiguration().getProxyService(proxyName);
+        ProxyService proxyService = synCtx.getConfiguration().getProxyServiceWithUUID(proxyName);
         if (proxyService != null) {
             if (proxyService.getTargetFaultSequence() != null) {
-                Mediator faultSequence = synCtx.getSequence(proxyService.getTargetFaultSequence());
+                faultVersionHandler = new VersionedSequenceMediatorDispatcher();
+                DispatcherStrategy.Target faultSeqTarget =
+                        faultVersionHandler.executeDispatch(null,proxyService.getTargetFaultSequence());
+                Mediator faultSequence =
+                        synCtx.getSequence(faultSeqTarget.getTarget(), faultSeqTarget.getTargetVersion());
                 if (faultSequence != null) {
                     synCtx.pushFaultHandler(new MediatorFaultHandler(faultSequence));
                 } else {
                     log.warn("Cloud not find any fault-sequence named :" +
-                                proxyService.getTargetFaultSequence() + "; Setting the default" +
-                                " fault sequence for out path");
-                    synCtx.pushFaultHandler(new MediatorFaultHandler(synCtx.getFaultSequence()));
+                            proxyService.getTargetFaultSequence() + "; Setting the default" +
+                            " fault sequence for out path");
+                    if(synCtx.getFaultSequence(proxyService.getVersion()) != null){
+                        synCtx.pushFaultHandler(
+                                new MediatorFaultHandler(synCtx.getFaultSequence(proxyService.getVersion())));
+                    }else{
+                        synCtx.pushFaultHandler(new MediatorFaultHandler(synCtx.getFaultSequence()));
+                    }
                 }
 
             } else if (proxyService.getTargetInLineFaultSequence() != null) {
@@ -256,7 +288,8 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
                     log.debug("Using Sequence with name: " + receivingSequence
                             + " for injected message");
                 }
-                Mediator seqMediator = synCtx.getSequence(receivingSequence);
+                DispatcherStrategy.Target target = seqenceVersionHandler.executeDispatch(null, receivingSequence);
+                Mediator seqMediator = synCtx.getSequence(target.getTarget(), target.getTargetVersion());
                 if (seqMediator != null) {
                     seqMediator.mediate(synCtx);
                 } else {
@@ -281,7 +314,7 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
 
         if (log.isDebugEnabled()) {
             log.debug("Injecting MessageContext for asynchronous mediation using the : "
-                + (seq.getName() == null? "Anonymous" : seq.getName()) + " Sequence");
+                    + (seq.getName() == null? "Anonymous" : seq.getName()) + " Sequence [version = " + seq.getVersion() + "]");
         }
         synCtx.setEnvironment(this);
         executorService.execute(new MediatorWorker(seq, synCtx));
@@ -311,7 +344,7 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
                 String proxyName = (String) synCtx.getProperty(SynapseConstants.PROXY_SERVICE);
                 boolean serviceModuleEngaged = false;
                 if (proxyName != null) {
-                    ProxyService proxyService = synapseConfig.getProxyService(proxyName);
+                    ProxyService proxyService = synapseConfig.getProxyServiceWithUUID(proxyName);
                     serviceModuleEngaged = proxyService.isModuleEngaged();
                 }
 
@@ -613,7 +646,8 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
         //TODO a class that Strategically detects out sequence  ?
         String sequenceName = proxyService.getTargetOutSequence();
         if (sequenceName != null && !"".equals(sequenceName)) {
-            Mediator outSequence = synCtx.getSequence(sequenceName);
+            DispatcherStrategy.Target target = seqenceVersionHandler.executeDispatch(null, sequenceName);
+            Mediator outSequence = synCtx.getSequence(target.getTarget(), target.getTargetVersion());
             if (outSequence != null) {
                 if (log.isDebugEnabled()) {
                     log.debug("Using the sequence named " + sequenceName

@@ -30,6 +30,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.synapse.*;
 import org.apache.synapse.aspects.AspectConfiguration;
 import org.apache.synapse.aspects.statistics.StatisticsCollector;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.wso2.securevault.definition.IdentityKeyStoreInformation;
 import org.wso2.securevault.definition.KeyStoreInformation;
 import org.wso2.securevault.definition.KeyStoreInformationFactory;
@@ -811,6 +812,7 @@ public class SynapseConfigUtils {
         main.addChild(new LogMediator());
         main.addChild(new DropMediator());
         config.addSequence(SynapseConstants.MAIN_SEQUENCE_KEY, main);
+        main.configure(new VersionFactory().createVersionConfig(main.getName(), null));
         // set the aspect configuration
         AspectConfiguration configuration = new AspectConfiguration(main.getName());
         main.configure(configuration);

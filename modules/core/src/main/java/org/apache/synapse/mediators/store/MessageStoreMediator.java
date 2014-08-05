@@ -26,6 +26,9 @@ import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.mediators.AbstractMediator;
 import org.apache.synapse.message.store.MessageStore;
 import org.apache.synapse.transport.nhttp.NhttpConstants;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedMessageProcessorDispatcher;
+import org.apache.synapse.versioning.dispatch.VersionedSequenceMediatorDispatcher;
 
 /**
  * <code>MessageStoreMediator</code> will store the incoming Messages in associated MessageStore
@@ -46,14 +49,41 @@ public class MessageStoreMediator extends AbstractMediator{
      * Sequence name to be invoked when the message is stored
      */
     private String  onStoreSequence;
+    /**
+     * this handles the version based dispatching
+     */
+    private DispatcherStrategy messageStoreVersionHandler = null;
+
+    /**
+     *   this handles the version based dispatching
+     */
+    private DispatcherStrategy seqenceVersionHandler = null;
+
 
 
     public boolean mediate(MessageContext synCtx) {
         if(synCtx != null) {
-            MessageStore messageStore = synCtx.getConfiguration().getMessageStore(messageStoreName);
+            messageStoreVersionHandler = new VersionedMessageProcessorDispatcher();
+            DispatcherStrategy.Target msgStoreTarget = messageStoreVersionHandler.executeDispatch(null, messageStoreName);
+            MessageStore messageStore = null;
+            if(msgStoreTarget.getTarget() != null && msgStoreTarget.getTarget() !=""){
+                messageStore = synCtx.getConfiguration().getMessageStore(
+                        msgStoreTarget.getTarget(), msgStoreTarget.getTargetVersion());
+            }else {
+                messageStore = synCtx.getConfiguration().getMessageStoreWithUUID(messageStoreName);
+            }
             if(messageStore != null) {
                 if(onStoreSequence != null) {
-                    Mediator sequence = synCtx.getSequence(onStoreSequence);
+                    seqenceVersionHandler = new VersionedSequenceMediatorDispatcher();
+                    DispatcherStrategy.Target seqTarget =
+                            messageStoreVersionHandler.executeDispatch(null, onStoreSequence);
+
+                    Mediator sequence = null;
+                    if(seqTarget.getTarget() != null && seqTarget.getTarget() != ""){
+                        sequence = synCtx.getSequence(seqTarget.getTarget(),seqTarget.getTargetVersion());
+                    }else {
+                        sequence = synCtx.getSequence(onStoreSequence);
+                    }
                     if(sequence != null) {
                         sequence.mediate(synCtx);
                     }

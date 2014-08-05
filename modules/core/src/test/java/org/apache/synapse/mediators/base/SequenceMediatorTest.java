@@ -20,6 +20,7 @@
 package org.apache.synapse.mediators.base;
 
 import junit.framework.TestCase;
+import org.apache.axis2.Constants;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.SynapseException;
@@ -134,6 +135,8 @@ public class SequenceMediatorTest extends TestCase {
         mc.setConfigurationContext(cfgCtx);
         mc.setEnvelope(TestUtils.getTestContext("<empty/>").getEnvelope());
 
+        //this is to patch versioning dipatch check error at message injection
+        mc.setProperty(Constants.Configuration.TRANSPORT_IN_URL,"//");
         new SynapseMessageReceiver().receive(mc);
 
         assertTrue("T1.T2.T4".equals(result.toString()));

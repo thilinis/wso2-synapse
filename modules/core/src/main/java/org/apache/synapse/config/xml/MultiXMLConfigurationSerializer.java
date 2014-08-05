@@ -395,7 +395,7 @@ public class MultiXMLConfigurationSerializer {
         String fileName = service.getFileName();
         if (fileName != null) {
             if (currentDirectory == rootDirectory) {
-                handleDeployment(proxyDir, fileName, service.getName(),
+                handleDeployment(proxyDir, fileName, service.getUUIDName(),
                         synapseConfig.getArtifactDeploymentStore());
             }
             File proxyFile = new File(proxyDir, fileName);
@@ -464,7 +464,7 @@ public class MultiXMLConfigurationSerializer {
         String fileName = seq.getFileName();
         if (fileName != null) {
             if (currentDirectory == rootDirectory) {
-                handleDeployment(seqDir, fileName, seq.getName(),
+                handleDeployment(seqDir, fileName, seq.getUUIDName(),
                         synapseConfig.getArtifactDeploymentStore());
             }
             File seqFile = new File(seqDir, fileName);
@@ -528,7 +528,7 @@ public class MultiXMLConfigurationSerializer {
         String fileName = epr.getFileName();
         if (fileName != null) {
             if (currentDirectory == rootDirectory) {
-                handleDeployment(eprDir, fileName, epr.getName(),
+                handleDeployment(eprDir, fileName, epr.getUUIDName(),
                         synapseConfig.getArtifactDeploymentStore());
             }
             File eprFile = new File(eprDir, fileName);
@@ -616,7 +616,7 @@ public class MultiXMLConfigurationSerializer {
         if (fileName != null) {
 
             if (currentDirectory == rootDirectory) {
-                handleDeployment(messageStoreDir, fileName, messagestore.getName(),synConfig
+                handleDeployment(messageStoreDir, fileName, messagestore.getUUIDName(),synConfig
                         .getArtifactDeploymentStore());
             }
 
@@ -643,7 +643,7 @@ public class MultiXMLConfigurationSerializer {
         String fileName = messageProcessor.getFileName();
         if (fileName != null) {
             if (currentDirectory == rootDirectory) {
-                handleDeployment(messageProcessorDir, fileName, messageProcessor.getName(),
+                handleDeployment(messageProcessorDir, fileName, messageProcessor.getUUIDName(),
                         synapseConfiguration.getArtifactDeploymentStore());
             }
             File messageProcessorFile = new File(messageProcessorDir , fileName);
@@ -887,21 +887,21 @@ public class MultiXMLConfigurationSerializer {
         for (SequenceMediator seq : synapseConfig.getDefinedSequences().values()) {
             if (seq.getFileName() != null) {
                 handleDeployment(new File(rootDirectory, MultiXMLConfigurationBuilder.
-                        SEQUENCES_DIR), seq.getFileName(), seq.getName(), deploymentStore);
+                        SEQUENCES_DIR), seq.getFileName(), seq.getUUIDName(), deploymentStore);
             }
         }
 
         for (Endpoint ep : synapseConfig.getDefinedEndpoints().values()) {
             if (ep.getFileName() != null) {
                 handleDeployment(new File(rootDirectory, MultiXMLConfigurationBuilder.
-                        ENDPOINTS_DIR), ep.getFileName(), ep.getName(), deploymentStore);
+                        ENDPOINTS_DIR), ep.getFileName(), ep.getUUIDName(), deploymentStore);
             }
         }
 
         for (ProxyService proxy : synapseConfig.getProxyServices()) {
             if (proxy.getFileName() != null) {
                 handleDeployment(new File(rootDirectory, MultiXMLConfigurationBuilder.
-                        PROXY_SERVICES_DIR), proxy.getFileName(), proxy.getName(), deploymentStore);
+                        PROXY_SERVICES_DIR), proxy.getFileName(), proxy.getUUIDName(), deploymentStore);
             }
         }
 
@@ -937,14 +937,14 @@ public class MultiXMLConfigurationSerializer {
         for(MessageStore ms : synapseConfig.getMessageStores().values()) {
             if(ms.getFileName() != null) {
                 handleDeployment(new File(rootDirectory,MultiXMLConfigurationBuilder.
-                        MESSAGE_STORE_DIR),ms.getFileName(), ms.getName(),deploymentStore);
+                        MESSAGE_STORE_DIR),ms.getFileName(), ms.getUUIDName(),deploymentStore);
             }
         }
 
         for(MessageProcessor mp : synapseConfig.getMessageProcessors().values()) {
             if(mp.getFileName() != null) {
                 handleDeployment(new File(rootDirectory,MultiXMLConfigurationBuilder.
-                        MESSAGE_PROCESSOR_DIR),mp.getFileName(), mp.getName(),deploymentStore);
+                        MESSAGE_PROCESSOR_DIR),mp.getFileName(), mp.getUUIDName(),deploymentStore);
             }
         }
 

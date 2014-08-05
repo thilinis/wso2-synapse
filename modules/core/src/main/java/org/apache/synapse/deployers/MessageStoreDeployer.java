@@ -48,24 +48,24 @@ public class MessageStoreDeployer extends AbstractSynapseArtifactDeployer{
             MessageStore ms = MessageStoreFactory.createMessageStore(artifactConfig,properties);
             if(ms != null) {
                 ms.setFileName((new File(fileName)).getName());
-                 if (log.isDebugEnabled()) {
-                    log.debug("Message Store named '" + ms.getName()
+                if (log.isDebugEnabled()) {
+                    log.debug("Message Store named '" + ms.getName() + " [version = " + ms.getVersion() + "]"
                             + "' has been built from the file " + fileName);
                 }
                 ms.init(getSynapseEnvironment());
                 if (log.isDebugEnabled()) {
-                    log.debug("Initialized the Message Store : " + ms.getName());
+                    log.debug("Initialized the Message Store : " + ms.getName()+ " [version = " + ms.getVersion() + "]");
                 }
-                getSynapseConfiguration().addMessageStore(ms.getName(), ms);
+                getSynapseConfiguration().addMessageStore(ms.getName(),ms.getVersion(), ms);
                 if (log.isDebugEnabled()) {
                     log.debug("Message Store Deployment from file : " + fileName + " : Completed");
                 }
-                log.info("Message Store named '" + ms.getName()
+                log.info("Message Store named '" + ms.getName()+ " [version = " + ms.getVersion() + "]"
                         + "' has been deployed from file : " + fileName);
-                return ms.getName();
+                return ms.getUUIDName();
             } else {
                 handleSynapseArtifactDeploymentError("Message Store Deployment from the file : "
-                    + fileName + " : Failed. The artifact " +
+                        + fileName + " : Failed. The artifact " +
                         "described in the file  is not a Message Store");
             }
 
@@ -93,24 +93,24 @@ public class MessageStoreDeployer extends AbstractSynapseArtifactDeployer{
             ms.setFileName(new File(fileName).getName());
 
             if (log.isDebugEnabled()) {
-                log.debug("MessageStore: " + ms.getName() + " has been built from the file: "
-                        + fileName);
+                log.debug("MessageStore: " + ms.getName() + " [version = " + ms.getVersion() + "]"
+                        + " has been built from the file: "+ fileName);
             }
 
             ms.init(getSynapseEnvironment());
-            MessageStore existingMs = getSynapseConfiguration().getMessageStore(existingArtifactName);
+            MessageStore existingMs = getSynapseConfiguration().getMessageStoreWithUUID(existingArtifactName);
 
             // We should add the updated MessageStore as a new MessageStore and remove the old one
-            getSynapseConfiguration().removeMessageStore(existingArtifactName);
-            getSynapseConfiguration().addMessageStore(ms.getName(), ms);
-            log.info("MessageStore: " + existingArtifactName + " has been undeployed");
+            getSynapseConfiguration().removeMessageProcessorWithUUID(existingArtifactName);
+            getSynapseConfiguration().addMessageStore(ms.getName(),ms.getVersion(), ms);
+            log.info("MessageStore: " + existingMs.getName() + " [version = " + existingMs.getVersion() + "]"+ " has been undeployed");
 
 
-            log.info("MessageStore: " + ms.getName() + " has been updated from the file: " + fileName);
+            log.info("MessageStore: " + ms.getName() + " [version = " + ms.getVersion() + "]"+ " has been updated from the file: " + fileName);
 
             waitForCompletion();
             existingMs.destroy();
-            return ms.getName();
+            return ms.getUUIDName();
 
         } catch (DeploymentException e) {
             handleSynapseArtifactDeploymentError("Error while updating the MessageStore from the " +
@@ -122,15 +122,15 @@ public class MessageStoreDeployer extends AbstractSynapseArtifactDeployer{
 
     @Override
     public void undeploySynapseArtifact(String artifactName) {
-          if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("MessageStore Undeployment of the MessageStore named : "
                     + artifactName + " : Started");
         }
 
         try {
-            MessageStore ms = getSynapseConfiguration().getMessageStore(artifactName);
+            MessageStore ms = getSynapseConfiguration().getMessageStoreWithUUID(artifactName);
             if (ms != null) {
-                getSynapseConfiguration().removeMessageStore(artifactName);
+                getSynapseConfiguration().removeMessageProcessorWithUUID(artifactName);
                 if (log.isDebugEnabled()) {
                     log.debug("Destroying the MessageStore named : " + artifactName);
                 }
@@ -158,7 +158,7 @@ public class MessageStoreDeployer extends AbstractSynapseArtifactDeployer{
 
         try {
             MessageStore ms
-                    = getSynapseConfiguration().getMessageStore(artifactName);
+                    = getSynapseConfiguration().getMessageStoreWithUUID(artifactName);
             OMElement msElem = MessageStoreSerializer.serializeMessageStore(null,ms);
             if (ms.getFileName() != null) {
                 String fileName = getServerConfigurationInformation().getSynapseXMLLocation()
@@ -169,7 +169,8 @@ public class MessageStoreDeployer extends AbstractSynapseArtifactDeployer{
                     log.debug("Restoring the MessageStore with name : "
                             + artifactName + " : Completed");
                 }
-                log.info("MessageStore named '" + artifactName + "' has been restored");
+                log.info("MessageStore named '" + ms.getName()  + " [version = " + ms.getVersion() + "]"+
+                        "' has been restored");
             } else {
                 handleSynapseArtifactDeploymentError("Couldn't restore the MessageStore named '"
                         + artifactName + "', filename cannot be found");

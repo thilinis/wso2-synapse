@@ -54,6 +54,7 @@ public class ProxyServiceSerializer {
         if (service.getName() != null) {
             proxy.addAttribute(fac.createOMAttribute(
                     "name", nullNS, service.getName()));
+            VersionSerializer.serializeVersioning(service.getConfiguration(), proxy);
         } else {
             handleException("Invalid proxy service. Service name is required");
         }

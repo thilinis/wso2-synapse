@@ -36,12 +36,12 @@ import java.util.Properties;
 /**
  *  Handles the <code>Sequence</code> deployment and undeployment tasks
  *
- * @see AbstractSynapseArtifactDeployer
+ * @see org.apache.synapse.deployers.AbstractSynapseArtifactDeployer
  */
 public class SequenceDeployer extends AbstractSynapseArtifactDeployer {
 
     private static Log log = LogFactory.getLog(SequenceDeployer.class);
-    
+
     @Override
     public String deploySynapseArtifact(OMElement artifactConfig, String fileName,
                                         Properties properties) {
@@ -51,27 +51,26 @@ public class SequenceDeployer extends AbstractSynapseArtifactDeployer {
         }
 
         try {
-            MediatorFactoryFinder.getInstance().setSynapseLibraryMap(getSynapseConfiguration().getSynapseLibraries());
             Mediator m = MediatorFactoryFinder.getInstance().getMediator(
                     artifactConfig, properties);
             if (m instanceof SequenceMediator) {
                 SequenceMediator seq = (SequenceMediator) m;
                 seq.setFileName((new File(fileName)).getName());
                 if (log.isDebugEnabled()) {
-                    log.debug("Sequence named '" + seq.getName()
+                    log.debug("Sequence named '" + seq.getName() + " [version = " + seq.getVersion() + "]"
                             + "' has been built from the file " + fileName);
                 }
                 seq.init(getSynapseEnvironment());
                 if (log.isDebugEnabled()) {
-                    log.debug("Initialized the sequence : " + seq.getName());
+                    log.debug("Initialized the sequence : " + seq.getName()+ " [version = " + seq.getVersion() + "]");
                 }
-                getSynapseConfiguration().addSequence(seq.getName(), seq);
+                getSynapseConfiguration().addSequence(seq.getName(), seq.getVersion(), seq);
                 if (log.isDebugEnabled()) {
                     log.debug("Sequence Deployment from file : " + fileName + " : Completed");
                 }
-                log.info("Sequence named '" + seq.getName()
+                log.info("Sequence named '" + seq.getName()+" [version = " + seq.getVersion() + "]"
                         + "' has been deployed from file : " + fileName);
-                return seq.getName();
+                return seq.getUUIDName();
             } else {
                 handleSynapseArtifactDeploymentError("Sequence Deployment Failed. " +
                         "The artifact described in the file " + fileName + " is not a Sequence");
@@ -87,7 +86,7 @@ public class SequenceDeployer extends AbstractSynapseArtifactDeployer {
     @Override
     public String updateSynapseArtifact(OMElement artifactConfig, String fileName,
                                         String existingArtifactName, Properties properties) {
-        
+
         if (log.isDebugEnabled()) {
             log.debug("Sequence update from file : " + fileName + " has started");
         }
@@ -116,19 +115,19 @@ public class SequenceDeployer extends AbstractSynapseArtifactDeployer {
             seq.init(getSynapseEnvironment());
             SequenceMediator existingSeq = getSynapseConfiguration().getDefinedSequences().
                     get(existingArtifactName);
-            if (existingArtifactName.equals(seq.getName())) {
-                getSynapseConfiguration().updateSequence(existingArtifactName, seq);
+            if (existingArtifactName.equals(seq.getUUIDName())) {
+                getSynapseConfiguration().updateSequenceWithUUID(existingArtifactName, seq);
             } else {
-                getSynapseConfiguration().addSequence(seq.getName(), seq);
-                getSynapseConfiguration().removeSequence(existingArtifactName);
-                log.info("Sequence: " + existingArtifactName + " has been undeployed");
+                getSynapseConfiguration().addSequence(seq.getName(), seq.getVersion(), seq);
+                getSynapseConfiguration().removeSequenceWithUUID(existingArtifactName);
+                log.info("Sequence: " + seq.getName()+" [version = "+existingSeq.getVersion()+"]" + " has been undeployed");
             }
 
-            log.info("Sequence: " + seq.getName() + " has been updated from the file: " + fileName);
+            log.info("Sequence: " + seq.getName()+" [version = "+seq.getVersion()+"]" + " has been updated from the file: " + fileName);
 
             waitForCompletion(); // Give some time for worker threads to release the old sequence
             existingSeq.destroy();
-            return seq.getName();
+            return seq.getUUIDName();
 
         } catch (DeploymentException e) {
             handleSynapseArtifactDeploymentError("Error while updating the sequence from the " +
@@ -145,7 +144,7 @@ public class SequenceDeployer extends AbstractSynapseArtifactDeployer {
             log.debug("Sequence Undeployment of the sequence named : "
                     + artifactName + " : Started");
         }
-        
+
         try {
             SequenceMediator seq
                     = getSynapseConfiguration().getDefinedSequences().get(artifactName);
@@ -155,16 +154,16 @@ public class SequenceDeployer extends AbstractSynapseArtifactDeployer {
                     handleSynapseArtifactDeploymentError(
                             "Cannot Undeploy the " + seq.getName() + " sequence");
                 }
-                getSynapseConfiguration().removeSequence(artifactName);
+                getSynapseConfiguration().removeSequenceWithUUID(artifactName);
                 if (log.isDebugEnabled()) {
-                    log.debug("Destroying the sequence named : " + artifactName);
+                    log.debug("Destroying the sequence named : " + seq.getName()+" [version = "+seq.getVersion()+"]");
                 }
                 seq.destroy();
                 if (log.isDebugEnabled()) {
                     log.debug("Sequence Undeployment of the sequence named : "
-                            + artifactName + " : Completed");
+                            + seq.getName()+" [version = "+seq.getVersion()+"]" + " : Completed");
                 }
-                log.info("Sequence named '" + seq.getName() + "' has been undeployed");
+                log.info("Sequence named '" + seq.getName()+" [version = "+seq.getVersion()+"]" + "' has been undeployed");
             } else if (log.isDebugEnabled()) {
                 log.debug("Sequence " + artifactName + " has already been undeployed");
             }

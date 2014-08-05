@@ -29,6 +29,8 @@ import org.apache.synapse.core.axis2.Axis2SynapseEnvironment;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.apache.synapse.config.SynapseConfiguration;
 import org.apache.synapse.config.Entry;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedEndpointDispatcher;
 
 import java.util.List;
 
@@ -40,6 +42,7 @@ public class IndirectEndpoint extends AbstractEndpoint {
 
     private String key = null;
     private Endpoint realEndpoint = null;
+    private DispatcherStrategy endpointVersionHandler = null;
 
     /**
      * Send by calling to the real endpoint
@@ -137,7 +140,6 @@ public class IndirectEndpoint extends AbstractEndpoint {
      * @param cc ConfigurationContext
      */
     private synchronized void reLoadAndInitEndpoint(ConfigurationContext cc) {
-
         Parameter parameter = cc.getAxisConfiguration().getParameter(
                 SynapseConstants.SYNAPSE_CONFIG);
         Parameter synEnvParameter = cc.getAxisConfiguration().getParameter(
@@ -162,23 +164,33 @@ public class IndirectEndpoint extends AbstractEndpoint {
                     reLoad = true;
                 }
             }
-
+            endpointVersionHandler = new VersionedEndpointDispatcher();
+            DispatcherStrategy.Target target = endpointVersionHandler.executeDispatch(null, key);
             if (reLoad) {
 
                 if (log.isDebugEnabled()) {
                     log.debug("Loading real endpoint with key : " + key);
                 }
 
-                realEndpoint = synCfg.getEndpoint(key);
+                if(target.getTarget()!= null && target.getTarget() != ""){
+                    realEndpoint = synCfg.getEndpoint(target.getTarget(), target.getTargetVersion());
+                }else {
+                    realEndpoint = synCfg.getEndpointWithUUID(key);
+                }
                 if (realEndpoint != null && !realEndpoint.isInitialized()) {
                     realEndpoint.init(synapseEnvironment);
                 }
             } else {
-                Endpoint epr = synCfg.getEndpoint(key);
+                Endpoint epr = null;
+                if(target.getTarget()!= null && target.getTarget() != ""){
+                    epr = synCfg.getEndpoint(target.getTarget(), target.getTargetVersion());
+                }else {
+                    epr = synCfg.getEndpointWithUUID(key);
+                }
+
                 if (epr != realEndpoint) {
                     realEndpoint = epr;
-                    if (realEndpoint != null && !realEndpoint.isInitialized()
-                            && realEndpoint instanceof ManagedLifecycle) {
+                    if (realEndpoint != null && !realEndpoint.isInitialized()) {
                         realEndpoint.init(synapseEnvironment);
                     }
                 }

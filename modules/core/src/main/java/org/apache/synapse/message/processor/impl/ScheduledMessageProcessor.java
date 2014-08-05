@@ -29,6 +29,9 @@ import org.apache.synapse.message.processor.impl.forwarder.ForwardingProcessorCo
 import org.apache.synapse.message.processor.impl.forwarder.ForwardingService;
 import org.apache.synapse.message.processor.impl.sampler.SamplingProcessor;
 import org.apache.synapse.message.processor.impl.sampler.SamplingService;
+import org.apache.synapse.message.store.MessageStore;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedMessageProcessorDispatcher;
 import org.quartz.*;
 import org.quartz.impl.StdSchedulerFactory;
 import java.util.Map;
@@ -74,6 +77,10 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
      * This is specially used for REST scenarios where http status codes can take semantics in a RESTful architecture.
      */
     protected String[] nonRetryStatusCodes = null;
+    /**
+     * this handles the version based dispatching
+     */
+    private DispatcherStrategy messageStoreVersionHandler = null;
 
     public void init(SynapseEnvironment se) {
         if (!isPinnedServer(se.getServerContextInformation().getServerConfigurationInformation()
@@ -112,11 +119,22 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
 
         try {
             if (isActivated.get()) {
-                setMessageConsumer(configuration.getMessageStore(messageStore).getConsumer());
+
+                messageStoreVersionHandler = new VersionedMessageProcessorDispatcher();
+                DispatcherStrategy.Target msgStoreTarget = messageStoreVersionHandler.executeDispatch(null, messageStore);
+                MessageStore store = null;
+                if(msgStoreTarget.getTarget() != null && msgStoreTarget.getTarget() !=""){
+                    store = configuration.getMessageStore(
+                            msgStoreTarget.getTarget(), msgStoreTarget.getTargetVersion());
+                }else {
+                    store = configuration.getMessageStoreWithUUID(messageStore);
+                }
+
+                setMessageConsumer(store.getConsumer());
                 scheduler.start();
 
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Started message processor. [" + getName() + "].");
+                    logger.debug("Started message processor. [" + getName() + "-Version : "+getVersion()+"].");
                 }
             }
         } catch (SchedulerException e) {
@@ -124,7 +142,7 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
         }
 
         Trigger trigger;
-        TriggerBuilder<Trigger> triggerBuilder = newTrigger().withIdentity(name + "-trigger");
+        TriggerBuilder<Trigger> triggerBuilder = newTrigger().withIdentity(getUUIDName() + "-trigger");
 
         if (cronExpression == null || "".equals(cronExpression)) {
             trigger = triggerBuilder
@@ -205,7 +223,7 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
             jobBuilder = JobBuilder.newJob(ForwardingService.class);
         }
 
-        jobBuilder.withIdentity(name + "-job", MessageProcessorConstants.SCHEDULED_MESSAGE_PROCESSOR_GROUP);
+        jobBuilder.withIdentity(getUUIDName() + "-job", MessageProcessorConstants.SCHEDULED_MESSAGE_PROCESSOR_GROUP);
 
         return jobBuilder;
     }
@@ -227,9 +245,9 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
                     }
 
                     try {
-                        scheduler.interrupt(new JobKey(name + "-job", MessageProcessorConstants.SCHEDULED_MESSAGE_PROCESSOR_GROUP));
+                        scheduler.interrupt(new JobKey(getUUIDName() + "-job", MessageProcessorConstants.SCHEDULED_MESSAGE_PROCESSOR_GROUP));
                     } catch (UnableToInterruptJobException e) {
-                        logger.info("Unable to interrupt job [" + name + "-job]");
+                        logger.info("Unable to interrupt job [" + getName() + "[Version:"+getVersion()+"-job]");
                     }
                 }
 
@@ -242,7 +260,7 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
         }
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Stopped message processor [" + getName() + "].");
+            logger.debug("Stopped message processor ["  + getName() + "-Version : "+getVersion()+ "].");
         }
 
         return true;
@@ -257,14 +275,14 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
         if (getMessageConsumer() != null) {
             boolean success = getMessageConsumer().cleanup();
             if (!success) {
-                logger.error("[" + getName() + "] Could not cleanup message consumer.");
+                logger.error("["  + getName() + "-Version : "+getVersion()+ "] Could not cleanup message consumer.");
             }
         } else {
-            logger.warn("[" + getName() + "] Could not find the message consumer to cleanup.");
+            logger.warn("["  + getName() + "-Version : "+getVersion()+ "] Could not find the message consumer to cleanup.");
         }
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Successfully destroyed message processor [" + getName() + "].");
+            logger.debug("Successfully destroyed message processor ["  + getName() + "-Version : "+getVersion()+"].");
         }
     }
 
@@ -272,22 +290,22 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
         try {
             if (scheduler != null && scheduler.isStarted()) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Deactivating message processor [" + getName() + "]");
+                    logger.debug("Deactivating message processor ["  + getName() + "-Version : "+getVersion()+ "]");
                 }
 
                 // This is to immediately stop the scheduler to avoid firing new services
                 scheduler.standby();
 
                 try {
-                    scheduler.interrupt(new JobKey(name + "-job", MessageProcessorConstants.SCHEDULED_MESSAGE_PROCESSOR_GROUP));
+                    scheduler.interrupt(new JobKey(getUUIDName()+ "-job", MessageProcessorConstants.SCHEDULED_MESSAGE_PROCESSOR_GROUP));
                 } catch (UnableToInterruptJobException e) {
-                    logger.info("Unable to interrupt job [" + name + "-job]");
+                    logger.info("Unable to interrupt job [" + getName()+"[Version : "+getVersion()+ "]-job]");
                 }
 
                 // This is to remove the consumer from the queue.
                 messageConsumer.cleanup();
 
-                logger.info("Successfully deactivated the message processor [" + getName() + "]");
+                logger.info("Successfully deactivated the message processor [" + getName() + "-Version : "+getVersion()+ "]");
 
                 setActivated(isActive());
 
@@ -301,7 +319,7 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
                         MessageProcessorDeployer dep = (MessageProcessorDeployer) deploymentEngine.getDeployer(directory, "xml");
                         dep.restoreSynapseArtifact(name);
                     } catch (Exception e) {
-                        logger.warn("Couldn't persist the state of the message processor [" + name + "]");
+                        logger.warn("Couldn't persist the state of the message processor [" + getName() + "- Version :"+getVersion()+"]");
                     }
                 }
 
@@ -332,7 +350,8 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
                     resumeService();
                 }
 
-                logger.info("Successfully re-activated the message processor [" + getName() + "]");
+                logger.info("Successfully re-activated the message processor ["  +
+                        getName() + "-Version : "+getVersion()+ "]");
 
                 setActivated(isActive());
 
@@ -348,7 +367,7 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
 
     public void pauseService() {
         try {
-            this.scheduler.pauseTrigger(new TriggerKey(name + "-trigger"));
+            this.scheduler.pauseTrigger(new TriggerKey(getUUIDName()+ "-trigger"));
             this.isPaused.set(true);
         } catch (SchedulerException se) {
             throw new SynapseException("Error while pausing the service", se);
@@ -357,7 +376,7 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
 
     public void resumeService() {
         try {
-            this.scheduler.resumeTrigger(new TriggerKey(name + "-trigger"));
+            this.scheduler.resumeTrigger(new TriggerKey(getUUIDName() + "-trigger"));
             this.isPaused.set(false);
         } catch (SchedulerException se) {
             throw new SynapseException("Error while pausing the service", se);
@@ -418,7 +437,7 @@ public abstract class ScheduledMessageProcessor extends AbstractMessageProcessor
                 }
             }
             if (!pinned) {
-                logger.info("Message processor '" + name + "' pinned on '" + pinnedServers + "' not starting on" +
+                logger.info("Message processor '" + name + "[Version :"+getVersion()+"] ' pinned on '" + pinnedServers + "' not starting on" +
                         " this server '" + serverName + "'");
             }
         } else {

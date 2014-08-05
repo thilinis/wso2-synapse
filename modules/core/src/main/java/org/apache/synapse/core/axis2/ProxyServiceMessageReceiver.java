@@ -33,6 +33,9 @@ import org.apache.synapse.aspects.statistics.StatisticsReporter;
 import org.apache.synapse.carbonext.TenantInfoConfigurator;
 import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.mediators.MediatorFaultHandler;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedEndpointDispatcher;
+import org.apache.synapse.versioning.dispatch.VersionedSequenceMediatorDispatcher;
 
 /**
  * This is the MessageReceiver set to act on behalf of Proxy services.
@@ -46,6 +49,9 @@ public class ProxyServiceMessageReceiver extends SynapseMessageReceiver {
     private String name = null;
     /** The proxy service */
     private ProxyService proxy = null;
+    private DispatcherStrategy sequenceVersionHandler = new VersionedSequenceMediatorDispatcher();
+    private DispatcherStrategy endpointVersionHandler = new VersionedEndpointDispatcher();
+    private DispatcherStrategy faultSequenceVersionHandler = new VersionedSequenceMediatorDispatcher();
 
     public void receive(org.apache.axis2.context.MessageContext mc) throws AxisFault {
 
@@ -117,15 +123,19 @@ public class ProxyServiceMessageReceiver extends SynapseMessageReceiver {
 
             // setup fault sequence - i.e. what happens when something goes wrong with this message
             if (proxy.getTargetFaultSequence() != null) {
+                faultSequenceVersionHandler = new VersionedSequenceMediatorDispatcher();
+                DispatcherStrategy.Target faultSeqTarget = faultSequenceVersionHandler.executeDispatch(
+                        null, proxy.getTargetFaultSequence());
+                Mediator faultSequence =
+                        synCtx.getSequence(faultSeqTarget.getTarget(),faultSeqTarget.getTargetVersion());
 
-                Mediator faultSequence = synCtx.getSequence(proxy.getTargetFaultSequence());
                 if (faultSequence != null) {
                     if (traceOrDebugOn) {
                         traceOrDebug(traceOn,
                             "Setting the fault-sequence to : " + faultSequence);
                     }
                     synCtx.pushFaultHandler(new MediatorFaultHandler(
-                        synCtx.getSequence(proxy.getTargetFaultSequence())));
+                            synCtx.getSequence(faultSeqTarget.getTarget(),faultSeqTarget.getTargetVersion())));
 
                 } else {
                     // when we can not find the reference to the fault sequence of the proxy
@@ -133,7 +143,12 @@ public class ProxyServiceMessageReceiver extends SynapseMessageReceiver {
                     // fault sequence and the message mediation can still continue
                     traceOrDebug(traceOn, "Unable to find fault-sequence : " +
                         proxy.getTargetFaultSequence() + "; using default fault sequence");
-                    synCtx.pushFaultHandler(new MediatorFaultHandler(synCtx.getFaultSequence()));
+                    if(synCtx.getFaultSequence(proxy.getVersion()) != null){
+                        synCtx.pushFaultHandler(
+                                new MediatorFaultHandler(synCtx.getFaultSequence(proxy.getVersion())));
+                    }else{
+                        synCtx.pushFaultHandler(new MediatorFaultHandler(synCtx.getFaultSequence()));
+                    }
                 }
 
             } else if (proxy.getTargetInLineFaultSequence() != null) {
@@ -149,7 +164,8 @@ public class ProxyServiceMessageReceiver extends SynapseMessageReceiver {
             // Using inSequence for the incoming message mediation
             if (proxy.getTargetInSequence() != null) {
 
-                Mediator inSequence = synCtx.getSequence(proxy.getTargetInSequence());
+                DispatcherStrategy.Target target = sequenceVersionHandler.executeDispatch(null, proxy.getTargetInSequence());
+                Mediator inSequence = synCtx.getSequence(target.getTarget(), target.getTargetVersion());
                 if (inSequence != null) {
                     traceOrDebug(traceOn, "Using sequence named : "
                         + proxy.getTargetInSequence() + " for incoming message mediation");
@@ -169,7 +185,15 @@ public class ProxyServiceMessageReceiver extends SynapseMessageReceiver {
             // if inSequence returns true, forward message to endpoint
             if(inSequenceResult) {
                 if (proxy.getTargetEndpoint() != null) {
-                    Endpoint endpoint = synCtx.getEndpoint(proxy.getTargetEndpoint());
+                    endpointVersionHandler = new VersionedSequenceMediatorDispatcher();
+                    DispatcherStrategy.Target endpointTarget = endpointVersionHandler.executeDispatch(
+                            null, proxy.getTargetEndpoint());
+                    Endpoint endpoint = null;
+                    if(endpointTarget.getTarget() != null && endpointTarget.getTarget() != ""){
+                        endpoint = synCtx.getEndpoint(endpointTarget.getTarget(),endpointTarget.getTargetVersion());
+                    }else {
+                        endpoint = synCtx.getEndpointWithUUID(proxy.getTargetEndpoint());
+                    }
 
                     if (endpoint != null) {
                         traceOrDebug(traceOn, "Forwarding message to the endpoint : "

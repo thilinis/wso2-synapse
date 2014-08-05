@@ -32,6 +32,7 @@ import org.apache.axis2.engine.AxisConfiguration;
 import org.apache.synapse.config.Entry;
 import org.apache.synapse.config.SynapseConfiguration;
 import org.apache.synapse.util.resolver.ResourceMap;
+import org.apache.synapse.versioning.VersionConfiguration;
 import org.xml.sax.InputSource;
 
 public class ProxyServiceTest extends TestCase {
@@ -44,6 +45,7 @@ public class ProxyServiceTest extends TestCase {
         SynapseConfiguration synCfg = new SynapseConfiguration();
         AxisConfiguration axisCfg = new AxisConfiguration();
         ProxyService proxyService = new ProxyService("Test");
+        proxyService.configure(new VersionConfiguration(proxyService.getName()));
         AxisService axisService = proxyService.buildAxisService(synCfg, axisCfg);
         // Serialize the WSDL
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -78,6 +80,7 @@ public class ProxyServiceTest extends TestCase {
         synCfg.addEntry("imported_wsdl", entry);
         // Build the proxy service
         ProxyService proxyService = new ProxyService("Test");
+        proxyService.configure(new VersionConfiguration(proxyService.getName()));
         proxyService.setWSDLKey("root_wsdl");
         ResourceMap resourceMap = new ResourceMap();
         resourceMap.addResource("imported.wsdl", "imported_wsdl");
@@ -95,6 +98,7 @@ public class ProxyServiceTest extends TestCase {
      */
     public void testRecursiveImports2() throws Exception {
         ProxyService testService = new ProxyService("mytest");
+        testService.configure(new VersionConfiguration(testService.getName()));
         SynapseConfiguration synCfg = new SynapseConfiguration();
         AxisConfiguration axisCfg = new AxisConfiguration();
         testService.setWsdlURI(getClass().getResource("SimpleStockService.wsdl").toURI());

@@ -22,6 +22,7 @@ package org.apache.synapse.config.xml.endpoints;
 import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
 import org.apache.synapse.SynapseConstants;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.XMLConfigConstants;
 import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.endpoints.EndpointDefinition;
@@ -61,6 +62,7 @@ public class HTTPEndpointFactory extends DefaultEndpointFactory {
 
         if (name != null) {
             httpEndpoint.setName(name.getAttributeValue());
+            httpEndpoint.configure(new VersionFactory().createVersionConfig(name.getAttributeValue(), epConfig));
         }
 
         OMElement httpElement = epConfig.getFirstChildWithName(

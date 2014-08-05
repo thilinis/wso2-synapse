@@ -62,6 +62,8 @@ import org.apache.synapse.task.TaskManager;
 import org.apache.synapse.util.xpath.ext.SynapseXpathFunctionContextProvider;
 import org.apache.synapse.util.xpath.ext.SynapseXpathVariableResolver;
 import org.apache.synapse.util.xpath.ext.XpathExtensionUtil;
+import org.apache.synapse.versioning.ArtifactVersionIdGenerator;
+import org.apache.synapse.versioning.VersionConstants;
 
 import javax.xml.namespace.QName;
 import java.io.IOException;
@@ -218,16 +220,43 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
      * Add a named sequence into the local registry. If a sequence already exists by the specified
      * key a runtime exception is thrown.
      *
-     * @param key      the name for the sequence
-     * @param mediator a Sequence mediator
+     * @param uuid
+     *            the name for the sequence
+     * @param mediator
+     *            a Sequence mediator
      */
-    public synchronized void addSequence(String key, Mediator mediator) {
-        assertAlreadyExists(key, SEQUENCE);
-        localRegistry.put(key, mediator);
+    public synchronized void addSequenceWithUUID(String uuid, Mediator mediator) {
+        assertAlreadyExists(uuid, SEQUENCE);
+        localRegistry.put(uuid, mediator);
 
         for (SynapseObserver o : observers) {
             o.sequenceAdded(mediator);
         }
+    }
+    /**
+     * Add the default sequence [default versioned] specified by name into the local registry. If a sequence already exists by the specified
+     * key a runtime exception is thrown.
+     *
+     * @param name
+     *            the name for the sequence
+     * @param mediator
+     *            a Sequence mediator
+     */
+    public synchronized void addSequence(String name, Mediator mediator) {
+        addSequenceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, VersionConstants.DEFAULT_SEQUNCE_VERSION), mediator);
+    }
+    /**
+     * Add a sequence specified by name and version into the local registry. If a sequence already exists by the specified
+     * key a runtime exception is thrown.
+     *
+     * @param name
+     *            the name for the sequence
+     * @param mediator
+     *            a Sequence mediator
+     */
+    public synchronized void addSequence(String name, String version,  Mediator mediator) {
+        addSequenceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name, version), mediator);
     }
 
     /**
@@ -261,7 +290,7 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
         }
     }
 
-    public synchronized void updateSequence(String key, Mediator mediator) {
+    public synchronized void updateSequenceWithUUID(String key, Mediator mediator) {
         localRegistry.put(key, mediator);
         for (SynapseObserver o : observers) {
             o.sequenceAdded(mediator);
@@ -297,7 +326,7 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
             for (Object o : localRegistry.values()) {
                 if (o instanceof SequenceMediator) {
                     SequenceMediator seq = (SequenceMediator) o;
-                    definedSequences.put(seq.getName(), seq);
+                    definedSequences.put(seq.getUUIDName(), seq);
                 }
             }
         }
@@ -511,30 +540,53 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
     }
 
     /**
+     *  Return the default sequence specified by name
+     *
+     * @param name
+     * @return  the default sequence referred by the name
+     */
+    public Mediator getSequence(String name){
+        return getSequenceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, VersionConstants.DEFAULT_SEQUNCE_VERSION));
+    }
+
+    /**
+     *  Return the sequence specified by the name and the version
+     *
+     * @param name
+     * @param version
+     * @return  the sequence referenced by the name and the version
+     */
+    public Mediator getSequence(String name,String version ){
+        return getSequenceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, version));
+    }
+
+    /**
      * Return the sequence specified with the given key
      *
-     * @param key the key being referenced
+     * @param uuid the key being referenced
      * @return the sequence referenced by the key
      */
-    public Mediator getSequence(String key) {
+    public Mediator getSequenceWithUUID(String uuid) {
 
-        Object o = getEntry(key);
+        Object o = getEntry(uuid);
         if (o instanceof Mediator) {
             return (Mediator) o;
         }
 
         Entry entry = null;
         if (o == null) {
-            entry = new Entry(key);
+            entry = new Entry(uuid);
             entry.setType(Entry.REMOTE_ENTRY);
         } else {
-            Object object = localRegistry.get(key);
+            Object object = localRegistry.get(uuid);
             if (object instanceof Entry) {
                 entry = (Entry) object;
             }
         }
 
-        assertEntryNull(entry, key);
+        assertEntryNull(entry, uuid);
 
         //noinspection ConstantConditions
         if (entry.getMapper() == null) {
@@ -545,7 +597,7 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
             if (registry != null) {
                 o = registry.getResource(entry, getProperties());
                 if (o != null && o instanceof Mediator) {
-                    localRegistry.put(key, entry);
+                    localRegistry.put(uuid, entry);
                     return (Mediator) o;
                 } else if (o instanceof OMNode) {
                     Mediator m = (Mediator) MediatorFactoryFinder.getInstance().
@@ -605,13 +657,36 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
 
     }
 
+    /**
+     * Removes a versioned sequence from the local registry
+     *
+     * @param name
+     *            of the sequence to be removed
+     */
+    public synchronized void removeSequence(String name){
+        removeSequenceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, SynapseConstants.DEFAULT_ARTIFACT_VERSION));
+    }
 
     /**
+     * Removes a versioned sequence from the local registry
+     *
+     * @param name   name of sequence
+     * @param version   version of the sequence
+     *
+     */
+    public synchronized void removeSequence(String name, String version){
+        removeSequenceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name, version));
+    }
+    /**
+
+     /**
      * Removes a sequence from the local registry
      *
-     * @param key of the sequence to be removed
+     * @param key
+     *            of the sequence to be removed
      */
-    public synchronized void removeSequence(String key) {
+    public synchronized void removeSequenceWithUUID(String key) {
         Object sequence = localRegistry.get(key);
         if (sequence instanceof Mediator) {
             localRegistry.remove(key);
@@ -622,6 +697,7 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
             handleException("No sequence exists by the key/name : " + key);
         }
     }
+
 
     /**
      * Removes a template from the local registry
@@ -639,7 +715,6 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
             handleException("No template exists by the key/name : " + name);
         }
     }
-
     /**
      * Return the main/default sequence to be executed. This is the sequence
      * which will execute for all messages when message mediation takes place
@@ -651,6 +726,16 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
     }
 
     /**
+     * Return the main sequence specified by the version
+     *
+     * @param version
+     * @return  the main sequence specified by the version
+     */
+    public Mediator getMainSequence(String version) {
+        return getSequence(SynapseConstants.MAIN_SEQUENCE_KEY, version);
+    }
+
+    /**
      * Return the fault sequence to be executed when Synapse encounters a fault
      * scenario during processing
      *
@@ -658,6 +743,16 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
      */
     public Mediator getFaultSequence() {
         return getSequence(SynapseConstants.FAULT_SEQUENCE_KEY);
+    }
+
+    /**
+     * Return the versioned fault sequence to be executed when Synapse encounters a fault
+     * scenario during processing
+     * @param version
+     * @return the fault sequence
+     */
+    public Mediator getFaultSequence(String version) {
+        return getSequence(SynapseConstants.FAULT_SEQUENCE_KEY, version);
     }
 
     /**
@@ -896,26 +991,67 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
     }
 
     /**
-     * Define a named endpoint with the given key. If an endpoint already exists by the specified
-     * name a runtime exception is thrown.
+     * Define a named endpoint with the given uuid. If an endpoint already exists by the specified
+     * uuid a runtime exception is thrown.
      *
-     * @param key      the key for the endpoint
-     * @param endpoint the endpoint definition
+     * @param key
+     *            the key for the endpoint
+     * @param endpoint
+     *            the endpoint definition
      */
-    public synchronized void addEndpoint(String key, Endpoint endpoint) {
+    public synchronized void addEndpointWithUUID(String key, Endpoint endpoint) {
         assertAlreadyExists(key, ENDPOINT);
         localRegistry.put(key, endpoint);
         for (SynapseObserver o : observers) {
             o.endpointAdded(endpoint);
         }
     }
+    /**
+     * Define the default endpoint with the given name. If an endpoint already exists by the specified
+     * name a runtime exception is thrown.
+     *
+     * @param name
+     *              the name of the endpoint
+     * @param endpoint
+     *              the endpoint definition
+     */
+    public synchronized void addEndpoint(String name, Endpoint endpoint){
+        addEndpointWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, SynapseConstants.DEFAULT_ARTIFACT_VERSION), endpoint);
+    }
 
-    public synchronized void updateEndpoint(String key, Endpoint endpoint) {
-        localRegistry.put(key, endpoint);
+    /**
+     * Define a versioned endpoint with the given name and the version. If an endpoint already exists by the specified
+     * name and version, a runtime exception is thrown.
+     *
+     * @param name
+     *              the name of the endpoint
+     * @param version
+     *              the version of the endpoint
+     * @param endpoint
+     *              the definition for the endpoint
+     */
+    public synchronized void addEndpoint(String name, String version, Endpoint endpoint){
+        addEndpointWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name, version), endpoint);
+    }
+
+
+    /**
+     * Update endpoint with the given uuid
+     *
+     * @param uuid
+     *              the uuid
+     * @param endpoint
+     *              the endpoint definition
+     */
+
+    public synchronized void updateEndpointWithUUID(String uuid, Endpoint endpoint) {
+        localRegistry.put(uuid, endpoint);
         for (SynapseObserver o : observers) {
             o.endpointAdded(endpoint);
         }
     }
+
 
     /**
      * Add a dynamic endpoint definition to the local registry. If an endpoint already exists by
@@ -943,7 +1079,7 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
             for (Object o : localRegistry.values()) {
                 if (o instanceof Endpoint) {
                     Endpoint ep = (Endpoint) o;
-                    definedEndpoints.put(ep.getName(), ep);
+                    definedEndpoints.put(ep.getUUIDName(), ep);
                 }
             }
         }
@@ -952,30 +1088,32 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
     }
 
     /**
-     * Get the definition of the endpoint with the given key
+     * Get the definition of the endpoint with the given uuid
      *
-     * @param key the key of the endpoint
-     * @return the endpoint definition
+     * @param uuid
+     *          the uuid of the endpoint
+     * @return
+     *          the endpoint definition
      */
-    public Endpoint getEndpoint(String key) {
+    public Endpoint getEndpointWithUUID(String uuid) {
 
-        Object o = getEntry(key);
+        Object o = getEntry(uuid);
         if (o != null && o instanceof Endpoint) {
             return (Endpoint) o;
         }
 
         Entry entry = null;
         if (o == null) {
-            entry = new Entry(key);
+            entry = new Entry(uuid);
             entry.setType(Entry.REMOTE_ENTRY);
         } else {
-            Object object = localRegistry.get(key);
+            Object object = localRegistry.get(uuid);
             if (object instanceof Entry) {
                 entry = (Entry) object;
             }
         }
 
-        assertEntryNull(entry, key);
+        assertEntryNull(entry, uuid);
 
         //noinspection ConstantConditions
         if (entry.getMapper() == null) {
@@ -986,9 +1124,9 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
             if (registry != null) {
                 o = registry.getResource(entry, getProperties());
                 if (o != null && o instanceof Endpoint) {
-                    localRegistry.put(key, entry);
+                    localRegistry.put(uuid, entry);
                     return (Endpoint) o;
-                } else if (o instanceof OMNode) {
+                } else if (o instanceof OMNode){
                     Endpoint e = (Endpoint) XMLToEndpointMapper.getInstance().
                             getObjectFromOMNode((OMNode) o, properties);
                     if (e != null) {
@@ -1012,81 +1150,207 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
     }
 
     /**
-     * Deletes the endpoint with the given key. If an endpoint does not exist by the specified
-     * key a runtime exception is thrown.
+     * Get the definition of the default endpoint with the given name
      *
-     * @param key of the endpoint to be deleted
+     * @param name
+     *             the name of the endpoint
+     * @return
+     *             the endpoint definition
      */
-    public synchronized void removeEndpoint(String key) {
-        Object endpoint = localRegistry.get(key);
+    public Endpoint getEndpoint(String name){
+        return getEndpointWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, SynapseConstants.DEFAULT_ARTIFACT_VERSION));
+    }
+
+    /**
+     * Get the definition of the versioned endpoint with the given name and version
+     *
+     * @param name
+     *             the name of the endpoint
+     * @param version
+     *             the version of the endpoint
+     * @return
+     *             the endpoint definition
+     */
+    public Endpoint getEndpoint(String name, String version){
+        return getEndpointWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name, version));
+    }
+    /**
+     * Deletes the endpoint with the given name and version. If an endpoint does not exist by the specified
+     * uuid a runtime exception is thrown.
+     *
+     * @param name
+     *            of the endpoint to be deleted
+     * @return
+     *            the endpoint definition
+     */
+    public synchronized void removeEndpoint(String name, String version) {
+        removeEndpointWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name, version));
+
+    }
+    /**
+     * Deletes the default endpoint with the given name. If an endpoint does not exist by the specified
+     * uuid a runtime exception is thrown.
+     *
+     * @param name
+     *            of the endpoint to be deleted
+     * @return
+     *            the endpoint definition
+     */
+    public synchronized void removeEndpoint(String name) {
+        removeEndpointWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name,SynapseConstants.DEFAULT_ARTIFACT_VERSION));
+    }
+
+    /**
+     * Deletes the endpoint with the given uuid. If an endpoint does not exist by the specified
+     * uuid a runtime exception is thrown.
+     *
+     * @param uuid
+     *            of the endpoint to be deleted
+     */
+    public synchronized void removeEndpointWithUUID(String uuid) {
+        Object endpoint = localRegistry.get(uuid);
         if (endpoint instanceof Endpoint) {
-            localRegistry.remove(key);
+            localRegistry.remove(uuid);
             for (SynapseObserver o : observers) {
                 o.endpointRemoved((Endpoint) endpoint);
             }
         } else {
-            handleException("No endpoint exists by the key/name : " + key);
+            handleException("No endpoint exists by the key/name : " + uuid);
+        }
+    }
+    /**
+     * Add a Proxy service specified by name and version to the configuration
+     *
+     * @param name
+     *            the name of the Proxy service
+     * @param proxy
+     *            the Proxy service instance
+     */
+    public synchronized void addProxyService(String name,String version, ProxyService proxy) {
+        addProxyServiceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name,version), proxy);
+    }
+    /**
+     * Add a Proxy service specified by name to the configuration
+     *
+     * @param name
+     *            the name of the Proxy service
+     * @param proxy
+     *            the Proxy service instance
+     */
+    public synchronized void addProxyService(String name, ProxyService proxy) {
+        addProxyServiceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, SynapseConstants.DEFAULT_ARTIFACT_VERSION), proxy);
+
+    }
+    /**
+     * Add a Proxy service to the configuration. If a proxy service already exists by the
+     * specified uuid a runtime exception is thrown.
+     *
+     * @param uuid
+     *            the uuid of the Proxy service
+     * @param proxy
+     *            the Proxy service instance
+     */
+    public synchronized void addProxyServiceWithUUID(String uuid, ProxyService proxy) {
+        if (!proxyServices.containsKey(uuid)) {
+            proxyServices.put(uuid, proxy);
+            for (SynapseObserver o : observers) {
+                o.proxyServiceAdded(proxy);
+            }
+        } else {
+            handleException("Duplicate proxy service by the name : " + uuid);
         }
     }
 
-    /**
-     * Add a Proxy service to the configuration. If a proxy service already exists by the
-     * specified name a runtime exception is thrown.
-     *
-     * @param name  the name of the Proxy service
-     * @param proxy the Proxy service instance
-     */
-    public void addProxyService(String name, ProxyService proxy) {
-        synchronized (this.axisConfiguration) {
-            if (!proxyServices.containsKey(name)) {
-                proxyServices.put(name, proxy);
-                for (SynapseObserver o : observers) {
-                    o.proxyServiceAdded(proxy);
-                }
-            } else {
-                handleException("Duplicate proxy service by the name : " + name);
-            }
-        }
-    }
 
     /**
      * Get the Proxy service with the given name
      *
-     * @param name the name being looked up
+     * @param name
+     *            the name being looked up
      * @return the Proxy service
      */
     public ProxyService getProxyService(String name) {
-        return proxyServices.get(name);
+        return getProxyServiceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name,SynapseConstants.DEFAULT_ARTIFACT_VERSION));
+    }
+    /**
+     * Get the Proxy service with the given name
+     *
+     * @param name
+     *            the name being looked up
+     * @param version
+     *            the version being looked up
+     * @return the Proxy service
+     */
+    public ProxyService getProxyService(String name, String version) {
+        return getProxyServiceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name,version));
     }
 
     /**
-     * Deletes the Proxy Service named with the given name. If a proxy service does not exist by
-     * the specified name a runtime exception is thrown.
+     * Get the Proxy service with the given uuid
      *
-     * @param name of the Proxy Service to be deleted
+     * @param uuid
+     *            the uuid being looked up
+     * @return the Proxy service
      */
-    public void removeProxyService(String name) {
-        synchronized (this.axisConfiguration) {
-            ProxyService proxy = proxyServices.get(name);
-            if (proxy == null) {
-                handleException("Unknown proxy service for name : " + name);
-            } else {
-                try {
-                    if (getAxisConfiguration().getServiceForActivation(name) != null) {
-                        if (getAxisConfiguration().getServiceForActivation(name)
-                                .isActive()) {
-                            getAxisConfiguration().getService(name)
-                                    .setActive(false);
-                        }
-                        getAxisConfiguration().removeService(name);
+    public ProxyService getProxyServiceWithUUID(String uuid) {
+        return proxyServices.get(uuid);
+    }
+    /**
+     *  Deletes the Proxy Service specified with the given name
+     *
+     * @param name
+     *            the name being looked up to remove
+     */
+
+    public synchronized void removeProxyService(String name){
+        removeProxyServiceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name,SynapseConstants.DEFAULT_ARTIFACT_VERSION));
+    }
+
+    /**
+     *  Deletes the Proxy Service specified with the given name and version
+     *
+     * @param name
+     *            the name being looked up
+     * @param version
+     *            the version being looked up to remove
+     */
+
+    public synchronized void removeProxyService(String name, String version){
+        removeProxyServiceWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name,version));
+    }
+
+    /**
+     * Deletes the Proxy Service specified with the given uuid. If a proxy service does not exist by
+     * the specified uuid a runtime exception is thrown.
+     *
+     * @param uuid
+     *            of the Proxy Service to be deleted
+     */
+    public synchronized void removeProxyServiceWithUUID(String uuid) {
+        ProxyService proxy = proxyServices.get(uuid);
+        if (proxy == null) {
+            handleException("Unknown proxy service for name : " + uuid);
+        } else {
+            try {
+                if (getAxisConfiguration().getServiceForActivation(uuid) != null) {
+                    if (getAxisConfiguration().getServiceForActivation(uuid)
+                            .isActive()) {
+                        getAxisConfiguration().getService(uuid)
+                                .setActive(false);
                     }
-                    proxyServices.remove(name);
-                    for (SynapseObserver o : observers) {
-                        o.proxyServiceRemoved(proxy);
-                    }
-                } catch (AxisFault axisFault) {
-                    handleException(axisFault.getMessage());
+                    getAxisConfiguration().removeService(uuid);
                 }
+                proxyServices.remove(uuid);
+                for (SynapseObserver o : observers) {
+                    o.proxyServiceRemoved(proxy);
+                }
+            } catch (AxisFault axisFault) {
+                handleException(axisFault.getMessage());
             }
         }
     }
@@ -1690,6 +1954,7 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
         return executor;
     }
 
+
     /**
      * Get the Message store for the configuration with a given name.
      *
@@ -1697,7 +1962,39 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
      * @return a MessageStore instance or null
      */
     public MessageStore getMessageStore(String name) {
-        return messageStores.get(name) ;
+        return getMessageStoreWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, SynapseConstants.DEFAULT_ARTIFACT_VERSION));
+    }
+
+    /**
+     * Get the Message store for the configuration with a given name.
+     *
+     * @param name Name of the message store
+     * @param version Version of the message store
+     * @return a MessageStore instance or null
+     */
+    public MessageStore getMessageStore(String name, String version) {
+        return getMessageStoreWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name, version));
+    }
+
+    /**
+     * Get the Message store for the configuration with a given uuid.
+     *
+     * @param uuid UUID of the message store
+     * @return a MessageStore instance or null
+     */
+    public MessageStore getMessageStoreWithUUID(String uuid) {
+        return messageStores.get(uuid) ;
+    }
+    /**
+     * Add MessageStore to the configuration with a given name and version
+     *
+     * @param name Name of the message store
+     * @param version Version of the message store
+     * @param messageStore a MessageStore instance
+     */
+    public void addMessageStore(String name, String version, MessageStore messageStore) {
+        addMessageStoreWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name,version),messageStore);
     }
 
     /**
@@ -1706,17 +2003,22 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
      * @param name Name of the message store
      * @param messageStore a MessageStore instance
      */
-    public void addMessageStore(String name, MessageStore messageStore) {
-        if (!messageStores.containsKey(name)) {
-            messageStores.put(name, messageStore);
-            Set<String> processors = messageProcessors.keySet();
-            for (String processorName : processors) {
-                if (messageProcessors.get(processorName).getMessageStoreName().equals(name)) {
-                    (messageProcessors.get(processorName)).start();
-                }
-            }
+    public void addMessageStore(String name,MessageStore messageStore) {
+        addMessageStoreWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name,SynapseConstants.DEFAULT_ARTIFACT_VERSION),messageStore);
+    }
+
+    /**
+     * Add MessageStore to the configuration with a given uuid.
+     *
+     * @param uuid UUID of the message store
+     * @param messageStore a MessageStore instance
+     */
+    public void addMessageStoreWithUUID(String uuid,MessageStore messageStore) {
+        if (!messageStores.containsKey(uuid)){
+            messageStores.put(uuid,messageStore);
         } else {
-            handleException("Duplicate message store : " + name);
+            handleException("Duplicate message store : " + uuid);
         }
     }
 
@@ -1732,22 +2034,91 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
      * Removes a Message store from the configuration
      *
      * @param name name of the message store
-     * @return The message store with the specified name
+     * @return The default message store with the specified name
      */
     public MessageStore removeMessageStore(String name) {
-        return messageStores.remove(name);
+        return removeMessageStoreWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name,SynapseConstants.DEFAULT_ARTIFACT_VERSION));
     }
 
+    /**
+     * Removes a Message store from the configuration
+     *
+     * @param name name of the message store
+     * @param version version of the message store
+     * @return The message store with the specified name
+     */
+    public MessageStore removeMessageStore(String name, String version) {
+        return removeMessageStoreWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name,version));
+    }
+
+    /**
+     * Removes a Message store from the configuration
+     *
+     * @param uuid uuid of the message store
+     * @return The message store with the specified uuid
+     */
+    public MessageStore removeMessageStoreWithUUID(String uuid) {
+        return messageStores.remove(uuid);
+    }
+    /**
+     * remove the message processor from the synapse configuration
+     * @param name of the message
+     * @return  Removed Message processor instance
+     */
+    public MessageProcessor removeMessageProcessor(String name) {
+        return removeMessageProcessorWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name,SynapseConstants.DEFAULT_ARTIFACT_VERSION));
+    }
+
+    /**
+     * remove the message processor from the synapse configuration
+     * @param name  of the message
+     * @param version of the message
+     * @return  Removed Message processor instance
+     */
+    public MessageProcessor removeMessageProcessor(String name, String version) {
+        return removeMessageProcessorWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name,version));
+    }
+
+    /**
+     * remove the message processor from the synapse configuration
+     * @param uuid  of the message
+     * @return  Removed Message processor instance
+     */
+    public MessageProcessor removeMessageProcessorWithUUID(String uuid) {
+        return messageProcessors.remove(uuid);
+    }
     /**
      * Add message processor to the synapse configuration with given name
      * @param name of the Message processor
      * @param processor instance
      */
     public void addMessageProcessor(String name , MessageProcessor processor) {
-        if(!(messageProcessors.containsKey(name))) {
-            messageProcessors.put(name , processor);
+        addMessageProcessorWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name,SynapseConstants.DEFAULT_ARTIFACT_VERSION), processor);
+    }
+
+    /**
+     * Add message processor to the synapse configuration with given name and version
+     * @param name of the Message processor
+     * @param version of the Message processor
+     * @param processor instance
+     */
+    public void addMessageProcessor(String name, String version, MessageProcessor processor) {
+        addMessageProcessorWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name,version), processor);
+    }
+
+    /**
+     * Add message processor to the synapse configuration with given uuid
+     * @param uuid of the Message processor
+     * @param processor instance
+     */
+    public void addMessageProcessorWithUUID(String uuid , MessageProcessor processor) {
+        if(!(messageProcessors.containsKey(uuid))) {
+            messageProcessors.put(uuid , processor);
         } else {
-            handleException("Duplicate Message Processor " + name);
+            handleException("Duplicate Message Processor " + uuid);
         }
     }
 
@@ -1760,12 +2131,35 @@ public class SynapseConfiguration implements ManagedLifecycle, SynapseArtifact {
     }
 
     /**
-     * remove the message processor from the synapse configuration
-     * @param name  of the message
-     * @return  Removed Message processor instance
+     * Get the Message Processor from the configuration with a given uuid.
+     *
+     * @param uuid UUID of the message processor
+     * @return a MessageProcessor instance or null
      */
-    public MessageProcessor removeMessageProcessor(String name) {
-        return messageProcessors.remove(name);
+    public MessageProcessor getMessageProcessorWithUUID(String uuid) {
+        return messageProcessors.get(uuid);
+    }
+
+    /**
+     * Get the Message Processor from the configuration with a given name.
+     *
+     * @param name Name of the message processor
+     * @return a MessageProcessor instance or null
+     */
+    public MessageProcessor getMessageProcessor(String name) {
+        return getMessageProcessorWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                name, SynapseConstants.DEFAULT_ARTIFACT_VERSION));
+    }
+
+    /**
+     * Get the Message Processor from the configuration with a given name and version.
+     *
+     * @param name Name of the message processor
+     * @param version Version of the message processor
+     * @return a MessageProcessor instance or null
+     */
+    public MessageProcessor getMessageProcessor(String name, String version) {
+        return getMessageProcessorWithUUID(ArtifactVersionIdGenerator.getArtifactVersionKey(name, version));
     }
 
     /**

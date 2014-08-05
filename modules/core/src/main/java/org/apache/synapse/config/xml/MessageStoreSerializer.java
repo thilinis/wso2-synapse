@@ -66,6 +66,7 @@ public class MessageStoreSerializer {
 
         if (messageStore.getName() != null) {
             store.addAttribute(fac.createOMAttribute("name", nullNS, messageStore.getName()));
+            VersionSerializer.serializeVersioning(messageStore.getConfiguration(), store);
         } else {
             handleException("Message store Name not specified");
         }

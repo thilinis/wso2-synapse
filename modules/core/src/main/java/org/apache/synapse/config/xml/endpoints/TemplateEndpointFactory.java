@@ -22,6 +22,7 @@ package org.apache.synapse.config.xml.endpoints;
 import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
 import org.apache.synapse.SynapseConstants;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.XMLConfigConstants;
 import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.endpoints.TemplateEndpoint;
@@ -39,6 +40,8 @@ public class TemplateEndpointFactory extends EndpointFactory {
         if (endpointNameAttribute != null) {
             templateEndpoint.addParameter("name", endpointNameAttribute.getAttributeValue());
             templateEndpoint.setName(endpointNameAttribute.getAttributeValue());
+            templateEndpoint.configure(new VersionFactory().createVersionConfig(
+                    endpointNameAttribute.getAttributeValue(), endpointElement));
         } /*else {
             handleException("Error loading the configuration from Template " +
                     "Endpoint, name attribute is missing");

@@ -92,6 +92,7 @@ public class MessageStoreFactory {
 
         if (nameAtt != null) {
             messageStore.setName(nameAtt.getAttributeValue());
+            messageStore.configure(new VersionFactory().createVersionConfig(nameAtt.getAttributeValue(), elem));
         } else {
             handleException("Message Store name not specified");
         }

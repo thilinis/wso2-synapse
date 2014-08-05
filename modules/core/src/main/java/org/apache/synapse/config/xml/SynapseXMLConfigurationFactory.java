@@ -22,10 +22,7 @@ package org.apache.synapse.config.xml;
 import org.apache.axiom.om.OMElement;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.synapse.Mediator;
-import org.apache.synapse.Startup;
-import org.apache.synapse.SynapseConstants;
-import org.apache.synapse.SynapseException;
+import org.apache.synapse.*;
 import org.apache.synapse.config.xml.endpoints.TemplateFactory;
 import org.apache.synapse.config.xml.inbound.InboundEndpointFactory;
 import org.apache.synapse.config.xml.rest.APIFactory;
@@ -51,6 +48,7 @@ import org.apache.synapse.registry.Registry;
 import org.apache.axis2.AxisFault;
 import org.apache.synapse.rest.API;
 import org.apache.synapse.task.TaskManager;
+import org.apache.synapse.versioning.VersionConfigurable;
 
 import javax.xml.namespace.QName;
 import java.util.Iterator;
@@ -156,7 +154,15 @@ public class SynapseXMLConfigurationFactory implements ConfigurationFactory {
         try {
             proxy = ProxyServiceFactory.createProxy(elem, properties);
             if (proxy != null) {
-                config.addProxyService(proxy.getName(), proxy);
+                if(proxy instanceof VersionConfigurable){
+                    VersionConfigurable versioned =  proxy ;
+                    config.addProxyServiceWithUUID(versioned.getConfiguration().getUUIDName(), proxy);
+                } else if (proxy instanceof Nameable) {
+                    Nameable namedProxy = (Nameable) proxy;
+                    config.addProxyService(namedProxy.getName(), proxy);
+                } else {
+                    config.addProxyService(proxy.getName(), proxy);
+                }
             }
         } catch (Exception e) {
             String msg = "Proxy Service configuration: " + elem.getAttributeValue((
@@ -218,7 +224,17 @@ public class SynapseXMLConfigurationFactory implements ConfigurationFactory {
             	MediatorFactoryFinder.getInstance().setSynapseImportMap(config.getSynapseImports());
                 mediator = MediatorFactoryFinder.getInstance().getMediator(ele, properties);
                 if (mediator != null) {
-                    config.addSequence(name, mediator);
+                    if (mediator instanceof VersionConfigurable){
+                        VersionConfigurable versioned = (VersionConfigurable) mediator ;
+                        config.addSequenceWithUUID(versioned.getConfiguration().getUUIDName(), mediator);
+                    }
+                    else if (mediator instanceof Nameable) {
+                        Nameable namedMediator = (Nameable) mediator;
+                        config.addSequence(namedMediator.getName(), mediator);
+                    } else {
+                        config.addSequence(name ,mediator);
+                    }
+
                     // mandatory sequence is treated as a special sequence because it will be fetched for
                     // each and every message and keeps a direct reference to that from the configuration
                     // this also limits the ability of the mandatory sequence to be dynamic
@@ -270,7 +286,15 @@ public class SynapseXMLConfigurationFactory implements ConfigurationFactory {
             try {
                 endpoint = EndpointFactory.getEndpointFromElement(ele, false, properties);
                 if (endpoint != null) {
-                    config.addEndpoint(name.trim(), endpoint);
+                    if(endpoint instanceof VersionConfigurable) {
+                        VersionConfigurable versioned = (VersionConfigurable) endpoint;
+                        config.addEndpointWithUUID(versioned.getConfiguration().getUUIDName(), endpoint);
+                    }else if(endpoint instanceof Nameable){
+                        Nameable namedEndpoint = (Nameable) endpoint;
+                        config.addEndpoint(namedEndpoint.getName(), endpoint);
+                    }else {
+                        config.addEndpoint(name.trim(), endpoint);
+                    }
                 }
             } catch (Exception e) {
                 String msg = "Endpoint configuration: " + name + " cannot be built";
@@ -322,7 +346,17 @@ public class SynapseXMLConfigurationFactory implements ConfigurationFactory {
         MessageStore messageStore = null;
         try {
             messageStore = MessageStoreFactory.createMessageStore(elem, properties);
-            config.addMessageStore(messageStore.getName(), messageStore);
+            if(messageStore != null){
+                if(messageStore instanceof VersionConfigurable){
+                    VersionConfigurable versioned =  messageStore;
+                    config.addMessageStoreWithUUID(versioned.getConfiguration().getUUIDName(), messageStore);
+                }else if(messageStore instanceof Nameable){
+                    Nameable namedMsgStore = (Nameable) messageStore;
+                    config.addMessageStore(namedMsgStore.getName(), messageStore);
+                }else {
+                    config.addMessageStore(messageStore.getName(),messageStore);
+                }
+            }
         } catch (Exception e) {
             String msg = "Message Store configuration cannot be built";
             handleConfigurationError(SynapseConstants.FAIL_SAFE_MODE_MESSAGE_STORES, msg, e);
@@ -335,7 +369,17 @@ public class SynapseXMLConfigurationFactory implements ConfigurationFactory {
         MessageProcessor processor = null;
         try {
             processor = MessageProcessorFactory.createMessageProcessor(elem);
-            config.addMessageProcessor(processor.getName(), processor);
+            if(processor != null){
+                if(processor instanceof VersionConfigurable){
+                    VersionConfigurable versioned =  processor;
+                    config.addMessageProcessorWithUUID(versioned.getConfiguration().getUUIDName(), processor);
+                }else if(processor instanceof Nameable){
+                    Nameable namedMsgProcessor = (Nameable) processor;
+                    config.addMessageProcessor(namedMsgProcessor.getName(), processor);
+                }else {
+                    config.addMessageProcessor(processor.getName(),processor);
+                }
+            }
         } catch (Exception e) {
             String msg = "Message Processor configuration cannot be built";
             handleConfigurationError(SynapseConstants.FAIL_SAFE_MODE_MESSAGE_PROCESSORS, msg, e);

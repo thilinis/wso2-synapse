@@ -24,6 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.SynapseException;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.XMLConfigConstants;
 import org.apache.synapse.config.xml.endpoints.utils.LoadbalanceAlgorithmFactory;
 import org.apache.synapse.core.LoadBalanceMembershipHandler;
@@ -82,6 +83,7 @@ public class DynamicLoadbalanceEndpointFactory extends EndpointFactory {
 
             if (name != null) {
                 loadbalanceEndpoint.setName(name.getAttributeValue());
+                loadbalanceEndpoint.configure(new VersionFactory().createVersionConfig(name.getAttributeValue(), epConfig));
             }
 
             // get the session for this endpoint

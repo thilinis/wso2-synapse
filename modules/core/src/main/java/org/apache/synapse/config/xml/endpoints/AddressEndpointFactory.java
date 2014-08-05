@@ -22,6 +22,7 @@ package org.apache.synapse.config.xml.endpoints;
 import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
 import org.apache.synapse.SynapseConstants;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.XMLConfigConstants;
 import org.apache.synapse.endpoints.AddressEndpoint;
 import org.apache.synapse.endpoints.Endpoint;
@@ -79,6 +80,7 @@ public class AddressEndpointFactory extends DefaultEndpointFactory {
 
         if (name != null) {
             addressEndpoint.setName(name.getAttributeValue());
+            addressEndpoint.configure(new VersionFactory().createVersionConfig(name.getAttributeValue(), epConfig));
         }
 
         OMElement addressElement = epConfig.getFirstChildWithName(

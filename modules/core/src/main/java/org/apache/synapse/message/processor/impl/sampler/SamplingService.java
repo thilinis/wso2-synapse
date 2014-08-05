@@ -81,7 +81,7 @@ public class SamplingService implements InterruptableJob, Service {
         } catch (Throwable t) {
             // All the possible recoverable exceptions are handles case by case and yet if it comes this
             // we have to shutdown the processor
-            log.fatal("Deactivating the message processor [" + this.messageProcessor.getName() + "]", t);
+            log.fatal("Deactivating the message processor [" + this.messageProcessor.getName() + "- Version ("+this.messageProcessor.getVersion()+"]", t);
 
             this.messageProcessor.stop();
         }

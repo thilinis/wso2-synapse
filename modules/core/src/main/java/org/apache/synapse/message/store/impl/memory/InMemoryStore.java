@@ -33,7 +33,7 @@ import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class InMemoryStore extends AbstractMessageStore {
+public class /**/InMemoryStore extends AbstractMessageStore {
     private static final Log logger = LogFactory.getLog(InMemoryStore.class.getName());
 
     private Queue<MessageContext> queue = new ConcurrentLinkedQueue<MessageContext>();
@@ -175,6 +175,6 @@ public class InMemoryStore extends AbstractMessageStore {
     }
 
     private String nameString() {
-        return "Store [" + getName() + "]";
+        return "Store [" + getName() + "-(Version - "+getVersion()+")]";
     }
 }

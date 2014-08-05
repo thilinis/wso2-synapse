@@ -97,6 +97,7 @@ public class MessageProcessorFactory {
         if (nameAtt != null) {
             assert processor != null;
             processor.setName(nameAtt.getAttributeValue());
+            processor.configure(new VersionFactory().createVersionConfig(nameAtt.getAttributeValue(), elem));
         } else {
             handleException("Can't create Message processor without a name ");
         }

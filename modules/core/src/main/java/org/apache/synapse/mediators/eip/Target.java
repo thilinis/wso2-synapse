@@ -27,6 +27,9 @@ import org.apache.synapse.continuation.ContinuationStackManager;
 import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.apache.axis2.addressing.EndpointReference;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedEndpointDispatcher;
+import org.apache.synapse.versioning.dispatch.VersionedSequenceMediatorDispatcher;
 
 /**
  * A bean class that holds the target (i.e. sequence or endpoint) information for a message
@@ -56,6 +59,9 @@ public class Target {
     /** if true the mediation will happen in a different thread than the original
      * thread invoked the mediate method*/
     private boolean asynchronous = true;
+
+    /** this handles the version based dispatching */
+    private DispatcherStrategy seqenceVersionHandler, endpointVersionHandler;
 
     /**
      * process the message through this target (may be to mediate
@@ -106,7 +112,9 @@ public class Target {
                 returnValue = sequence.mediate(synCtx);
             }
         } else if (sequenceRef != null) {
-            SequenceMediator refSequence = (SequenceMediator) synCtx.getSequence(sequenceRef);
+            seqenceVersionHandler = new VersionedSequenceMediatorDispatcher();
+            DispatcherStrategy.Target target = seqenceVersionHandler.executeDispatch(null, sequenceRef);
+            SequenceMediator refSequence = (SequenceMediator) synCtx.getSequence(target.getTarget(), target.getTargetVersion());
 
             // if target directs the message to a defined sequence, ReliantContState added by
             // Clone/Iterate mediator is no longer needed as defined sequence can be directly
@@ -138,7 +146,9 @@ public class Target {
             endpoint.send(synCtx);
         } else if (endpointRef != null) {
             ContinuationStackManager.removeReliantContinuationState(synCtx);
-            Endpoint epr = synCtx.getConfiguration().getEndpoint(endpointRef);
+            endpointVersionHandler = new VersionedEndpointDispatcher();
+            DispatcherStrategy.Target endpointTarget = endpointVersionHandler.executeDispatch(null, endpointRef);
+            Endpoint epr = synCtx.getConfiguration().getEndpoint(endpointTarget.getTarget(),endpointTarget.getTargetVersion());
             if (epr != null) {
                 if (log.isDebugEnabled()) {
                     log.debug("Sending using the endpoint named : " + endpointRef);

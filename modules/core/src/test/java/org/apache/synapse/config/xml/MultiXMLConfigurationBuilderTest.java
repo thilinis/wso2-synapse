@@ -28,6 +28,7 @@ import java.util.Properties;
 import org.apache.synapse.config.SynapseConfiguration;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.apache.axis2.util.JavaUtils;
+import org.apache.synapse.versioning.ArtifactVersionIdGenerator;
 
 public class MultiXMLConfigurationBuilderTest extends TestCase {
 
@@ -39,18 +40,24 @@ public class MultiXMLConfigurationBuilderTest extends TestCase {
         SynapseConfiguration synapseConfig =
                 MultiXMLConfigurationBuilder.getConfiguration(root, new Properties());
 
-        assertNotNull(synapseConfig.getDefinedSequences().get("main"));
-        assertNotNull(synapseConfig.getDefinedSequences().get("fault"));
-        SequenceMediator foo = synapseConfig.getDefinedSequences().get("foo");
-        SequenceMediator seq1 = synapseConfig.getDefinedSequences().get("synapse_xml_seq1");
+        assertNotNull(synapseConfig.getDefinedSequences().get(
+                ArtifactVersionIdGenerator.getArtifactVersionKey("main")));
+        assertNotNull(synapseConfig.getDefinedSequences().get(
+                ArtifactVersionIdGenerator.getArtifactVersionKey("fault")));
+        SequenceMediator foo = synapseConfig.getDefinedSequences().get(
+                ArtifactVersionIdGenerator.getArtifactVersionKey("foo"));
+        SequenceMediator seq1 = synapseConfig.getDefinedSequences().get(
+                ArtifactVersionIdGenerator.getArtifactVersionKey("synapse_xml_seq1"));
         assertNotNull(foo);
         assertNotNull(seq1);
         assertEquals("foo.xml", foo.getFileName());
         assertNull(seq1.getFileName());
         assertNull(synapseConfig.getDefinedSequences().get("bar"));
 
-        assertNotNull(synapseConfig.getDefinedEndpoints().get("epr1"));
-        assertNotNull(synapseConfig.getDefinedEndpoints().get("synapse_xml_epr1"));
+        assertNotNull(synapseConfig.getDefinedEndpoints().get(
+                ArtifactVersionIdGenerator.getArtifactVersionKey("epr1")));
+        assertNotNull(synapseConfig.getDefinedEndpoints().get(
+                ArtifactVersionIdGenerator.getArtifactVersionKey("synapse_xml_epr1")));
 
         assertNotNull(synapseConfig.getProxyService("proxy1"));
 

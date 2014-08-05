@@ -28,6 +28,7 @@ import org.apache.synapse.config.SynapseConfiguration;
 import org.apache.synapse.mediators.TestUtils;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.apache.axiom.om.OMNode;
+import org.apache.synapse.versioning.ArtifactVersionIdGenerator;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -65,8 +66,10 @@ public class DynamicResourceTest extends TestCase {
         System.out.println("Initializing in-memory registry for dynamic resource tests...");
 
         Map<String, OMNode> data = new HashMap<String, OMNode>();
-        data.put(KEY_DYNAMIC_ENDPOINT_1, TestUtils.createOMElement(DYNAMIC_ENDPOINT_1));
-        data.put(KEY_DYNAMIC_SEQUENCE_1, TestUtils.createOMElement(DYNAMIC_SEQUENCE_1));
+        data.put(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                KEY_DYNAMIC_ENDPOINT_1), TestUtils.createOMElement(DYNAMIC_ENDPOINT_1));
+        data.put(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                KEY_DYNAMIC_SEQUENCE_1), TestUtils.createOMElement(DYNAMIC_SEQUENCE_1));
 
         registry = new SimpleInMemoryRegistry(data, 8000L);
         config = new SynapseConfiguration();
@@ -112,7 +115,8 @@ public class DynamicResourceTest extends TestCase {
 
         // Phase 4
         System.out.println("Testing sequence reloading...");
-        registry.updateResource(KEY_DYNAMIC_SEQUENCE_1, TestUtils.createOMElement(DYNAMIC_SEQUENCE_2));
+        registry.updateResource(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                KEY_DYNAMIC_SEQUENCE_1), TestUtils.createOMElement(DYNAMIC_SEQUENCE_2));
         System.out.println("Waiting for the cache to expire...");
         Thread.sleep(8500L);
         synCtx = TestUtils.createLightweightSynapseMessageContext("<empty/>", config);
@@ -166,7 +170,8 @@ public class DynamicResourceTest extends TestCase {
 
         // Phase 4
         System.out.println("Testing endpoint reloading...");
-        registry.updateResource(KEY_DYNAMIC_ENDPOINT_1, TestUtils.createOMElement(DYNAMIC_ENDPOINT_2));
+        registry.updateResource(ArtifactVersionIdGenerator.getArtifactVersionKey(
+                KEY_DYNAMIC_ENDPOINT_1), TestUtils.createOMElement(DYNAMIC_ENDPOINT_2));
         System.out.println("Waiting for the cache to expire...");
         Thread.sleep(8500L);
         synCtx = TestUtils.createSynapseMessageContext("<empty/>", config);

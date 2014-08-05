@@ -77,6 +77,7 @@ public class SequenceMediatorSerializer extends AbstractListMediatorSerializer {
             } else if (mediator.getName() != null) {
                 sequence.addAttribute(fac.createOMAttribute(
                         "name", nullNS, mediator.getName()));
+                VersionSerializer.serializeVersioning(mediator.getConfiguration(), sequence);
 
                 if (mediator.getErrorHandler() != null) {
                     sequence.addAttribute(fac.createOMAttribute(

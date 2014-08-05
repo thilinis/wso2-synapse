@@ -54,7 +54,7 @@ public class MessageProcessorSerializer {
     protected static final OMNamespace synNS = SynapseConstants.SYNAPSE_OMNAMESPACE;
     protected static final OMNamespace nullNS = fac.createOMNamespace(
             XMLConfigConstants.NULL_NAMESPACE, "");
-
+//
 
     /**
      * Serialize a give Message processor instance to XML configuration
@@ -73,6 +73,7 @@ public class MessageProcessorSerializer {
 
         if (processor.getName() != null) {
             processorElem.addAttribute(fac.createOMAttribute("name", nullNS, processor.getName()));
+            VersionSerializer.serializeVersioning(processor.getConfiguration(), processorElem);
         } else {
             handleException("Message store Name not specified");
         }

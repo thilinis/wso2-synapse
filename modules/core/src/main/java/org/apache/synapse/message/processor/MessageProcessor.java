@@ -22,10 +22,11 @@ import org.apache.synapse.ManagedLifecycle;
 import org.apache.synapse.Nameable;
 import org.apache.synapse.SynapseArtifact;
 import org.apache.synapse.message.MessageConsumer;
+import org.apache.synapse.versioning.VersionConfigurable;
 
 import java.util.Map;
 
-public interface MessageProcessor extends ManagedLifecycle, Nameable, SynapseArtifact {
+public interface MessageProcessor extends ManagedLifecycle, Nameable, SynapseArtifact, VersionConfigurable {
     /**
      * This method is used to start the message processor. Once the message processor is started
      * it will start receiving messages
@@ -144,4 +145,17 @@ public interface MessageProcessor extends ManagedLifecycle, Nameable, SynapseArt
      * @return returns true on success.
      */
     boolean isPaused();
+
+    /**
+     * Get the uuid name of the message processor
+     * @return  the uuid
+     */
+    public String getUUIDName();
+
+    /**
+     *  Get the version of the message processor
+     * @return  the version of the message processor
+     */
+
+    public String getVersion();
 }

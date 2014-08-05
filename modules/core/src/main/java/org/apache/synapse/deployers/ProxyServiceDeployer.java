@@ -55,32 +55,33 @@ public class ProxyServiceDeployer extends AbstractSynapseArtifactDeployer {
         try {
             ProxyService proxy = ProxyServiceFactory.createProxy(artifactConfig, properties);
             if (proxy != null) {
-                if (getSynapseConfiguration().getProxyService(proxy.getName()) != null) {
+                if (getSynapseConfiguration().getProxyService(proxy.getUUIDName()) != null) {
                     log.warn("Hot deployment thread picked up an already deployed proxy - Ignoring");
                     return proxy.getName();
                 }
 
                 proxy.setFileName((new File(fileName)).getName());
                 if (log.isDebugEnabled()) {
-                    log.debug("ProxyService named '" + proxy.getName()
+                    log.debug("ProxyService named '" + proxy.getName()+ " [version = " + proxy.getVersion() + "]"
                             + "' has been built from the file " + fileName);
                 }
                 initializeProxy(proxy);
                 if (log.isDebugEnabled()) {
-                    log.debug("Initialized the ProxyService : " + proxy.getName());
+                    log.debug("Initialized the ProxyService : " + proxy.getName()
+                            + " [version = " + proxy.getVersion() + "]");
                 }
 
                 proxy.buildAxisService(getSynapseConfiguration(),
                         getSynapseConfiguration().getAxisConfiguration());
                 if (log.isDebugEnabled()) {
-                    log.debug("Started the ProxyService : " + proxy.getName());
+                    log.debug("Started the ProxyService : " + proxy.getName()+" [version = " + proxy.getVersion() + "]");
                 }
-                getSynapseConfiguration().addProxyService(proxy.getName(), proxy);
+                getSynapseConfiguration().addProxyService(proxy.getName(),proxy.getVersion(), proxy);
                 if (log.isDebugEnabled()) {
                     log.debug("ProxyService Deployment from file : " + fileName + " : Completed");
                 }
                 log.info("ProxyService named '" + proxy.getName()
-                        + "' has been deployed from file : " + fileName);
+                        + "','[version = "+proxy.getVersion()+"]' has been deployed from file : " + fileName);
                 return proxy.getName();
             } else {
                 handleSynapseArtifactDeploymentError("ProxyService Deployment Failed. The " +
@@ -113,33 +114,34 @@ public class ProxyServiceDeployer extends AbstractSynapseArtifactDeployer {
             if (proxy != null) {
                 proxy.setFileName((new File(fileName)).getName());
                 if (log.isDebugEnabled()) {
-                    log.debug("ProxyService named '" + proxy.getName()
+                    log.debug("ProxyService named '" + proxy.getName()+ " [version = " + proxy.getVersion() + "]"
                             + "' has been built from the file " + fileName);
                 }
                 initializeProxy(proxy);
                 if (log.isDebugEnabled()) {
                     log.debug("Initialized the ProxyService : " + proxy.getName());
                 }
-                ProxyService currentProxy = getSynapseConfiguration().getProxyService(existingArtifactName);
+                ProxyService currentProxy = getSynapseConfiguration().getProxyServiceWithUUID(existingArtifactName);
                 currentProxy.stop(getSynapseConfiguration());
-                getSynapseConfiguration().removeProxyService(existingArtifactName);
-                if (!existingArtifactName.equals(proxy.getName())) {
-                    log.info("ProxyService named " + existingArtifactName + " has been Undeployed");
+                getSynapseConfiguration().removeProxyServiceWithUUID(existingArtifactName);
+                if (!existingArtifactName.equals(proxy.getUUIDName())) {
+                    log.info("ProxyService named " + currentProxy.getName() +" [version = " + currentProxy.getVersion()
+                            + "]"+" has been Undeployed");
                 }
                 proxy.buildAxisService(getSynapseConfiguration(),
                         getSynapseConfiguration().getAxisConfiguration());
                 if (log.isDebugEnabled()) {
                     log.debug("Started the ProxyService : " + proxy.getName());
                 }
-                getSynapseConfiguration().addProxyService(proxy.getName(), proxy);
+                getSynapseConfiguration().addProxyService(proxy.getName(),proxy.getVersion(), proxy);
                 if (log.isDebugEnabled()) {
                     log.debug("ProxyService " + (existingArtifactName.equals(proxy.getName()) ?
                             "update" : "deployment") + " from file : " + fileName + " : Completed");
                 }
-                log.info("ProxyService named '" + proxy.getName()
-                        + "' has been " + (existingArtifactName.equals(proxy.getName()) ?
-                            "update" : "deployed") + " from file : " + fileName);
-                return proxy.getName();
+                log.info("ProxyService named '" + proxy.getName()+"[version = "+proxy.getVersion()+"]"
+                        + "' has been " + (existingArtifactName.equals(proxy.getUUIDName()) ?
+                        "updated" : "deployed") + " from file : " + fileName);
+                return proxy.getUUIDName();
             } else {
                 handleSynapseArtifactDeploymentError("ProxyService Update Failed. The artifact " +
                         "described in the file " + fileName + " is not a ProxyService");
@@ -161,18 +163,19 @@ public class ProxyServiceDeployer extends AbstractSynapseArtifactDeployer {
         }
         
         try {
-            ProxyService proxy = getSynapseConfiguration().getProxyService(artifactName);
+            ProxyService proxy = getSynapseConfiguration().getProxyServiceWithUUID(artifactName);
             if (proxy != null) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Stopping the ProxyService named : " + artifactName);
+                    log.debug("Stopping the ProxyService named : " + proxy.getName()+"[Version - "+proxy.getVersion()+"]");
                 }
                 proxy.stop(getSynapseConfiguration());
-                getSynapseConfiguration().removeProxyService(artifactName);
+                getSynapseConfiguration().removeProxyServiceWithUUID(artifactName);
                 if (log.isDebugEnabled()) {
                     log.debug("ProxyService Undeployment of the proxy named : "
                             + artifactName + " : Completed");
                 }
-                log.info("ProxyService named '" + proxy.getName() + "' has been undeployed");
+                log.info("ProxyService named '" + proxy.getName() +
+                        "' '[version = "+proxy.getVersion()+"]' has been undeployed");
             } else if (log.isDebugEnabled()) {
                 log.debug("Proxy service " + artifactName + " has already been undeployed");
             }
@@ -191,7 +194,7 @@ public class ProxyServiceDeployer extends AbstractSynapseArtifactDeployer {
 
         try {
             ProxyService proxy
-                    = getSynapseConfiguration().getProxyService(artifactName);
+                    = getSynapseConfiguration().getProxyServiceWithUUID(artifactName);
             OMElement proxyElem = ProxyServiceSerializer.serializeProxy(null, proxy);
             if (proxy.getFileName() != null) {
                 String fileName = getServerConfigurationInformation().getSynapseXMLLocation()

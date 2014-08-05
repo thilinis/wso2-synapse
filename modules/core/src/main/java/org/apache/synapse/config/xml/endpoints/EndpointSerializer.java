@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.SynapseException;
 import org.apache.synapse.PropertyInclude;
+import org.apache.synapse.config.xml.VersionSerializer;
 import org.apache.synapse.mediators.MediatorProperty;
 import org.apache.synapse.aspects.statistics.StatisticsConfigurable;
 import org.apache.synapse.config.xml.XMLConfigConstants;
@@ -154,6 +155,7 @@ public abstract class EndpointSerializer {
         boolean anon = ((AbstractEndpoint) endpoint).isAnonymous();
         if (name != null && !anon) {
             element.addAttribute("name", name, null);
+            VersionSerializer.serializeVersioning(((AbstractEndpoint) endpoint).getConfiguration(), element);
         }
 
         //serialize the message stores

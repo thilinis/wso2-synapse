@@ -89,7 +89,7 @@ public interface MessageContext {
     public void setContextEntries(Map<String, Object> entries);
 
     /**
-     * Return the main sequence from the configuration, or the local message context
+     * Return the default versioned  main sequence from the configuration, or the local message context
      * This method looks up for the sequence named Constants.MAIN_SEQUENCE_KEY from
      * the local message context to make this look up transactional - i.e. a request and
      * response message pair will not see a difference in the main sequence if the main
@@ -97,6 +97,16 @@ public interface MessageContext {
      * @return the main sequence to be used for mediation
      */
     public Mediator getMainSequence();
+
+    /**
+     * Return the  versioned  main sequence from the configuration with version, or the local message context
+     * This method looks up for the sequence named Constants.MAIN_SEQUENCE_KEY from
+     * the local message context with version to make this look up transactional - i.e. a request and
+     * response message pair will not see a difference in the main sequence if the main
+     * sequence was dynamic and changed in between at the registry
+     * @return the main sequence to be used for mediation
+     */
+    public Mediator getMainSequence(String version);
 
     /**
      * Return the fault sequence from the configuration, or the local message context
@@ -107,6 +117,15 @@ public interface MessageContext {
      * @return the fault sequence to be used for mediation
      */
     public Mediator getFaultSequence();
+    /**
+     * Return the versioned fault sequence from the configuration, or the local message context
+     * This method looks up for the sequence named Constants.FAULT_SEQUENCE_KEY from
+     * the local message context to make this look up transactional - i.e. a request and
+     * response message pair will not see a difference in the fault sequence if the fault
+     * sequence was dynamic and changed in between at the registry
+     * @return the fault sequence to be used for mediation
+     */
+    public Mediator getFaultSequence(String version);
 
     /**
      * Return the sequence with the given key from the configuration, or the local message
@@ -118,6 +137,30 @@ public interface MessageContext {
      * @return the sequence mediator mapped to the key
      */
     public Mediator getSequence(String key);
+
+    /**
+     * Return the versioned sequence with the given name and version from the configuration, or
+     * the local message context. This method looks up for the sequence with the given name,version pair
+     * from the local message context to make this look up transactional - i.e. a request and response
+     * message pair will not see a difference in the said sequence if it was dynamic and
+     * changed in between at the registry
+     * @param name the sequence key to be looked up
+     * @param version the sequence key to be looked up
+     * @return the sequence mediator mapped to the key
+     */
+    public Mediator getSequence(String name, String version);
+
+
+    /**
+     * Return the sequence with the given unique ID from the configuration, or the local message
+     * context. This method looks up for the sequence with the given uuid from the local
+     * message context to make this look up transactional - i.e. a request and response
+     * message pair will not see a difference in the said sequence if it was dynamic and
+     * changed in between at the registry
+     * @param uuid the sequence key to be looked up
+     * @return the sequence mediator mapped to the key
+     */
+    public Mediator getSequenceWithUUID(String uuid);
 
     /**
      * Return the format with the given key from the configuration.
@@ -136,6 +179,29 @@ public OMElement getFormat(String key);
      * @return the Template mediator mapped to the key
      */
     public Mediator getSequenceTemplate(String key);
+    /**
+     * Return the endpoint with the given unique ID from the configuration, or the local message
+     * context. This method looks up for the endpoint with the given uuid from the local
+     * message context to make this look up transactional - i.e. a request and response
+     * message pair will not see a difference in the said endpoint if it was dynamic and
+     * changed in between at the registry
+     * @param uuid the endpoint key to be looked up
+     * @return the endpoint mediator mapped to the key
+     */
+    public Endpoint getEndpointWithUUID(String uuid);
+
+
+    /**
+     * Return the endpoint with the given name and version from the configuration, or the local message
+     * context. This method looks up for the endpoint with the given version and name from the local
+     * message context to make this look up transactional - i.e. a request and response
+     * message pair will not see a difference in the said endpoint if it was dynamic and
+     * changed in between at the registry
+     * @param name the endpoint name to be looked up
+     * @param version the endpoint version to be looked up
+     * @return the endpoint mapped to the key
+     */
+    public Endpoint getEndpoint(String name, String version);
 
     /**
      * Return the endpoint with the given key from the configuration, or the local message

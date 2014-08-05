@@ -85,6 +85,7 @@ public class ProxyServiceFactory {
             handleException("The 'name' attribute is required for a Proxy service definition");
         } else {
             proxy = new ProxyService(name.getAttributeValue());
+            proxy.configure(new VersionFactory().createVersionConfig(name.getAttributeValue(), elem));
         }
 
         OMAttribute trans = elem.getAttribute(

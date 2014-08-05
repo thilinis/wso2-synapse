@@ -27,6 +27,7 @@ import org.apache.axis2.description.WSDL2Constants;
 import org.apache.axis2.util.JavaUtils;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.config.SynapseConfigUtils;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.endpoints.utils.WSDL11EndpointBuilder;
 import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.endpoints.WSDLEndpoint;
@@ -91,6 +92,7 @@ public class WSDLEndpointFactory extends DefaultEndpointFactory {
 
         if (name != null) {
             wsdlEndpoint.setName(name.getAttributeValue());
+            wsdlEndpoint.configure(new VersionFactory().createVersionConfig(name.getAttributeValue(), epConfig));
         }
 
         OMElement wsdlElement = epConfig.getFirstChildWithName

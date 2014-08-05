@@ -711,19 +711,22 @@ public class Axis2SynapseController implements SynapseController {
                 AxisService proxyService = proxy.buildAxisService(synapseConfiguration,
                         configurationContext.getAxisConfiguration());
                 if (proxyService != null) {
-                    log.info("Deployed Proxy service : " + proxy.getName());
+                    log.info("Deployed Proxy service : " + proxy.getName()+"[version = "+
+                            proxy.getVersion()+"]");
                     if (!proxy.isStartOnLoad()) {
                         proxy.stop(synapseConfiguration);
                     }
                 } else {
-                    log.warn("The proxy service " + proxy.getName() + " will NOT be available");
+                    log.warn("The proxy service " + proxy.getName() + "[version = "+proxy.getVersion()
+                            +" will NOT be available");
                 }
             } catch (SynapseException e) {
                 if (failSafeProxyEnabled) {
-                    log.warn("The proxy service " + proxy.getName() + " cannot be deployed - " +
-                            "Continue in Proxy Service fail-safe mode.");
+                    log.warn("The proxy service " + proxy.getName() +"[version = "+proxy.getVersion()+"]"
+                            +" cannot be deployed - "+"Continue in Proxy Service fail-safe mode.");
                 } else {
-                    handleException("The proxy service " + proxy.getName() + " : Deployment Error");
+                    handleException("The proxy service " + proxy.getName() +"[version = "+proxy.getVersion()+"]"+
+                            " : Deployment Error");
                 }
             }
         }
@@ -739,7 +742,7 @@ public class Axis2SynapseController implements SynapseController {
 
         for (ProxyService proxy : synapseConfiguration.getProxyServices()) {
             configurationContext.getAxisConfiguration().removeService(
-                    proxy.getName());
+                    proxy.getUUIDName());
         }
     }
 

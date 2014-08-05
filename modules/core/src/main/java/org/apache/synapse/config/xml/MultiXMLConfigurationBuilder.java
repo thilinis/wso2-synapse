@@ -333,7 +333,7 @@ public class MultiXMLConfigurationBuilder {
                         SequenceMediator sequence = (SequenceMediator) seq;
                         sequence.setFileName(file.getName());
                         synapseConfig.getArtifactDeploymentStore().addArtifact(
-                                file.getAbsolutePath(), sequence.getName());
+                                file.getAbsolutePath(), sequence.getUUIDName());
                     }
                 } catch (Exception e) {
                     String msg = "Sequence configuration cannot be built from : " + file.getName();
@@ -409,7 +409,7 @@ public class MultiXMLConfigurationBuilder {
                     if (endpoint != null) {
                         endpoint.setFileName(file.getName());
                         synapseConfig.getArtifactDeploymentStore().addArtifact(
-                                file.getAbsolutePath(), endpoint.getName());
+                                file.getAbsolutePath(), endpoint.getUUIDName());
                     }
                 } catch (Exception e) {
                     String msg = "Endpoint configuration cannot be built from : " + file.getName();

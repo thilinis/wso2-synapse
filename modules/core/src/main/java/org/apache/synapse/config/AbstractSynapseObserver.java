@@ -39,12 +39,14 @@ public abstract class AbstractSynapseObserver implements SynapseObserver {
     }
 
     public void sequenceAdded(Mediator sequence) {
-        log.info("Sequence : " + ((SequenceMediator) sequence).getName() + " was added " +
+        log.info("Sequence : " + ((SequenceMediator) sequence).getName() + " [version " +
+                ((SequenceMediator) sequence).getVersion() + "] was added " +
                 "to the Synapse configuration successfully" );
     }
 
     public void sequenceRemoved(Mediator sequence) {
-        log.info("Sequence : " + ((SequenceMediator) sequence).getName() + " was  removed " +
+        log.info("Sequence : " + ((SequenceMediator) sequence).getName() + " [version " +
+                ((SequenceMediator) sequence).getVersion() + "] was  removed " +
                 "from the Synapse configuration successfully");
     }
 
@@ -69,22 +71,26 @@ public abstract class AbstractSynapseObserver implements SynapseObserver {
     }
 
     public void endpointAdded(Endpoint endpoint) {
-        log.info("Endpoint : " + endpoint.getName() + " was added " +
+        log.info("Endpoint : " + endpoint.getName() + " [version " +
+                endpoint.getVersion() + "] "  +" was added " +
                 "to the Synapse configuration successfully");
     }
 
     public void endpointRemoved(Endpoint endpoint) {
-        log.info("Endpoint : " + endpoint.getName() + " was removed " +
+        log.info("Endpoint : " + endpoint.getName() + " [version " +
+                endpoint.getVersion() + "] "  + " was removed " +
                 "from the Synapse configuration successfully");
     }
 
     public void proxyServiceAdded(ProxyService proxy) {
-        log.info("Proxy service : " + proxy.getName() + " was added " +
+        log.info("Proxy service : " + proxy.getName() + " was added " + " [version " +
+                proxy.getVersion() + "] "  +
                 "to the Synapse configuration successfully");
     }
 
     public void proxyServiceRemoved(ProxyService proxy) {
-        log.info("Proxy service : " + proxy.getName() + " was removed " +
+        log.info("Proxy service : " + proxy.getName() + " was removed " + " [version " +
+                proxy.getVersion() + "] "  +
                 "from the Synapse configuration successfully");
     }
 

@@ -42,6 +42,7 @@ import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.mediators.base.SequenceMediator;
 import org.apache.synapse.mediators.template.InvokeMediator;
 import org.apache.synapse.mediators.template.TemplateMediator;
+import org.apache.synapse.versioning.ArtifactVersionIdGenerator;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -147,14 +148,23 @@ public class Axis2MessageContext implements MessageContext {
     }
 
     public Mediator getMainSequence() {
-        Object o = localEntries.get(SynapseConstants.MAIN_SEQUENCE_KEY);
+        return getMainSequence(SynapseConstants.DEFAULT_ARTIFACT_VERSION);
+    }
+
+    public Mediator getMainSequence(String version) {
+        String key = ArtifactVersionIdGenerator.getArtifactVersionKey(SynapseConstants.MAIN_SEQUENCE_KEY, version);
+        Object o = localEntries.get(key);
         if (o != null && o instanceof Mediator) {
             return (Mediator) o;
         } else {
-            Mediator main = getConfiguration().getMainSequence();
-            localEntries.put(SynapseConstants.MAIN_SEQUENCE_KEY, main);
+            Mediator main = getConfiguration().getMainSequence(version);
+            localEntries.put(key, main);
             return main;
         }
+    }
+    public Mediator getFaultSequence(String version){
+
+        return getFaultSequence(SynapseConstants.DEFAULT_ARTIFACT_VERSION);
     }
 
     public Mediator getFaultSequence() {
@@ -168,12 +178,21 @@ public class Axis2MessageContext implements MessageContext {
         }
     }
 
-    public Mediator getSequence(String key) {
+    public Mediator getSequence(String name) {
+        String key = ArtifactVersionIdGenerator.getArtifactVersionKey(name, SynapseConstants.DEFAULT_ARTIFACT_VERSION);
+        return getSequenceWithUUID(key);
+    }
+    public Mediator getSequence(String name, String version) {
+        String key = ArtifactVersionIdGenerator.getArtifactVersionKey(name, version);
+        return getSequenceWithUUID(key);
+    }
+
+    public Mediator getSequenceWithUUID(String key) {
         Object o = localEntries.get(key);
         if (o != null && o instanceof Mediator) {
             return (Mediator) o;
         } else {
-            Mediator m = getConfiguration().getSequence(key);
+            Mediator m = getConfiguration().getSequenceWithUUID(key);
             if (m instanceof SequenceMediator) {
                 SequenceMediator seqMediator = (SequenceMediator) m;
                 synchronized (m) {
@@ -230,13 +249,21 @@ public class Axis2MessageContext implements MessageContext {
             return m;
         }
     }
+    public Endpoint getEndpoint(String name) {
+        String key = ArtifactVersionIdGenerator.getArtifactVersionKey(name, SynapseConstants.DEFAULT_ARTIFACT_VERSION);
+        return getEndpointWithUUID(key);
+    }
+    public Endpoint getEndpoint(String name, String version) {
+        String key = ArtifactVersionIdGenerator.getArtifactVersionKey(name, version);
+        return getEndpointWithUUID(key);
+    }
 
-    public Endpoint getEndpoint(String key) {
+    public Endpoint getEndpointWithUUID(String key) {
         Object o = localEntries.get(key);
         if (o != null && o instanceof Endpoint) {
             return (Endpoint) o;
         } else {
-            Endpoint e = getConfiguration().getEndpoint(key);
+            Endpoint e = getConfiguration().getEndpointWithUUID(key);
             if (e != null) {
                 if (!e.isInitialized()) {
                     synchronized (e) {
@@ -495,7 +522,7 @@ public class Axis2MessageContext implements MessageContext {
             return serviceLog;
         } else {
             String serviceName = (String) getProperty(SynapseConstants.PROXY_SERVICE);
-            if (serviceName != null && synCfg.getProxyService(serviceName) != null) {
+            if (serviceName != null && synCfg.getProxyServiceWithUUID(serviceName) != null) {
                 serviceLog = LogFactory.getLog(
                         SynapseConstants.SERVICE_LOGGER_PREFIX + serviceName);
                 return serviceLog;

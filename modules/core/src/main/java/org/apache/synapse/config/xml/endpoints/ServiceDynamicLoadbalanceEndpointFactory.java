@@ -22,6 +22,7 @@ import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.impl.builder.StAXOMBuilder;
 import org.apache.synapse.SynapseConstants;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.XMLConfigConstants;
 import org.apache.synapse.config.xml.endpoints.utils.LoadbalanceAlgorithmFactory;
 import org.apache.synapse.endpoints.Endpoint;
@@ -186,6 +187,7 @@ public class ServiceDynamicLoadbalanceEndpointFactory extends EndpointFactory {
                 epConfig.getAttribute(new QName(XMLConfigConstants.NULL_NAMESPACE, "name"));
         if (name != null) {
             loadbalanceEndpoint.setName(name.getAttributeValue());
+            loadbalanceEndpoint.configure(new VersionFactory().createVersionConfig(name.getAttributeValue(), epConfig));
         }
 
         // get the session for this endpoint

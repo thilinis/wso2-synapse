@@ -43,6 +43,8 @@ import org.apache.synapse.mediators.MediatorFaultHandler;
 import org.apache.synapse.mediators.MediatorProperty;
 import org.apache.synapse.transport.passthru.util.RelayConstants;
 import org.apache.synapse.transport.passthru.util.RelayUtils;
+import org.apache.synapse.versioning.VersionConfiguration;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -97,6 +99,10 @@ public abstract class AbstractEndpoint extends FaultHandler implements Endpoint,
 
     /** The Sequence name associated with the endpoint*/
     protected String errorHandler = null;
+    /**The version configuration of the endpoint */
+    private VersionConfiguration versionConfig;
+    /** The errorHandler dispatcher strategy*/
+    private DispatcherStrategy errorSeqVersionHandler;
 
     private boolean enableMBeanStats = true;
 
@@ -198,6 +204,25 @@ public abstract class AbstractEndpoint extends FaultHandler implements Endpoint,
             MBeanRegistrar.getInstance().registerMBean(metricsMBean, "Endpoint", endpointName);
         }
     }
+
+    /**
+     * To get the uuid of the endpoint
+     * @return the uuid of the endpoint
+     */
+    public String getUUIDName() {
+        if (versionConfig != null) {
+            return versionConfig.getUUIDName();
+        }
+        return endpointName;
+    }
+    /**
+     * To get the version of the endpoint
+     * @return the version of the endpoint
+     */
+    public String getVersion() {
+        return versionConfig.getVersion();
+    }
+
 
     /**
      * set whether this endpoint needs to be registered for JMX MBeans. some endpoints may not need
@@ -740,4 +765,25 @@ public abstract class AbstractEndpoint extends FaultHandler implements Endpoint,
             e.getValue().evaluate(synCtx);
         }
     }
+
+    /**
+     *  Version configuration of the endpoint
+     *
+     * @param configuration the version configuration of the endpoint
+     *
+     */
+
+    public void configure(VersionConfiguration configuration) {
+        this.versionConfig = configuration;
+    }
+
+    /**
+     * Get the version configuration of the endpoint
+     *
+     * @return  versionConfig
+     */
+    public VersionConfiguration getConfiguration() {
+        return versionConfig;
+    }
+
 }

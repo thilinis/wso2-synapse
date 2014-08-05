@@ -27,6 +27,8 @@ import org.apache.synapse.core.axis2.Axis2MessageContext;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.apache.axis2.description.Parameter;
 import org.apache.axis2.context.ConfigurationContext;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
+import org.apache.synapse.versioning.dispatch.VersionedEndpointDispatcher;
 
 /**
  * 
@@ -34,6 +36,8 @@ import org.apache.axis2.context.ConfigurationContext;
 public class ResolvingEndpoint extends AbstractEndpoint {
 
     private SynapseXPath keyExpression = null;
+    /** this handles the version based dispatching */
+    private DispatcherStrategy endpointVersionHandler = null;
 
     /**
      * Send by calling to the real endpoint
@@ -68,7 +72,14 @@ public class ResolvingEndpoint extends AbstractEndpoint {
                 log.debug("Loading real endpoint with key : " + key);
             }
 
-            Endpoint ep = synCfg.getEndpoint(key);
+            endpointVersionHandler = new VersionedEndpointDispatcher();
+            DispatcherStrategy.Target target = endpointVersionHandler.executeDispatch(null, key);
+            Endpoint ep = null;
+            if(target.getTarget() != null && target.getTarget() != null){
+                ep = synCfg.getEndpoint(target.getTarget(), target.getTargetVersion());
+            }else {
+                ep = synCfg.getEndpointWithUUID(key);
+            }
             if (ep != null && !ep.isInitialized()) {
                 synchronized (ep) {
                     ep.init(synapseEnvironment);

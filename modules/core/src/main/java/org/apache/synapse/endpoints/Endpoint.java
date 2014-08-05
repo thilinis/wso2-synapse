@@ -23,6 +23,7 @@ import org.apache.synapse.ManagedLifecycle;
 import org.apache.synapse.MessageContext;
 import org.apache.synapse.Nameable;
 import org.apache.synapse.SynapseArtifact;
+import org.apache.synapse.versioning.VersionConfigurable;
 
 import java.util.List;
 
@@ -35,7 +36,7 @@ import java.util.List;
  * endpoint url. Endpoints may contain zero or more endpoints in them and build up a hierarchical
  * structure of endpoints.
  */
-public interface Endpoint extends ManagedLifecycle, SynapseArtifact, Nameable {
+public interface Endpoint extends ManagedLifecycle, SynapseArtifact, Nameable,VersionConfigurable {
 
     /**
      * Sends the message context according to an endpoint specific behavior.
@@ -123,5 +124,17 @@ public interface Endpoint extends ManagedLifecycle, SynapseArtifact, Nameable {
      * @param onFaultMessageStore, name of the message store
      */
     public void setErrorHandler(String onFaultMessageStore);
+    /**
+     * Get the uuid name of the endpoint
+     * @return  the uuid
+     */
+    public String getUUIDName();
+
+    /**
+     *  Get the version of the endpoint
+     * @return  the version of the endpoint
+     */
+
+    public String getVersion();
 
 }

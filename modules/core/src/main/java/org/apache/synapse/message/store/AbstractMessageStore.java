@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.synapse.commons.jmx.MBeanRegistrar;
 import org.apache.synapse.config.SynapseConfiguration;
 import org.apache.synapse.core.SynapseEnvironment;
+import org.apache.synapse.versioning.VersionConfiguration;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,6 +84,10 @@ public abstract class AbstractMessageStore implements MessageStore {
      */
     protected List<MessageStoreObserver> messageStoreObservers =
             new ArrayList<MessageStoreObserver>();
+    /**
+     * The version configuration of the messageStore
+     */
+    private VersionConfiguration versionConfig;
 
     protected Lock lock = new ReentrantLock();
 
@@ -124,6 +129,23 @@ public abstract class AbstractMessageStore implements MessageStore {
         messageStoreMBean = new MessageStoreView(name, this);
         MBeanRegistrar.getInstance().registerMBean(messageStoreMBean,
                 "MessageStore", this.name);
+    }
+    /**
+     * To get the uuid of the message store
+     * @return the uuid of the message store
+     */
+    public String getUUIDName() {
+        if (versionConfig != null) {
+            return versionConfig.getUUIDName();
+        }
+        return name;
+    }
+    /**
+     * To get the version of the message store
+     * @return the version of the message store
+     */
+    public String getVersion() {
+        return versionConfig.getVersion();
     }
 
     public void registerObserver(MessageStoreObserver observer) {
@@ -239,5 +261,12 @@ public abstract class AbstractMessageStore implements MessageStore {
             long diff = enqueued.get() - dequeued.get();
             return diff;
         }
+    }
+    public void configure(VersionConfiguration configuration) {
+        this.versionConfig = configuration;
+    }
+
+    public VersionConfiguration getConfiguration() {
+        return versionConfig;
     }
 }

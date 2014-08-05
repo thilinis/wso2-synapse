@@ -22,6 +22,7 @@ import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.commons.util.PropertyHelper;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.XMLConfigConstants;
 import org.apache.synapse.endpoints.ClassEndpoint;
 import org.apache.synapse.endpoints.Endpoint;
@@ -67,6 +68,7 @@ public class ClassEndpointFactory extends EndpointFactory {
 
 			if (endpointName != null) {
 				clazzEndpoint.setName(endpointName.getAttributeValue());
+                clazzEndpoint.configure(new VersionFactory().createVersionConfig(endpointName.getAttributeValue(), epConfig));
 			}
 			
 	        OMElement classElement =  epConfig.getFirstChildWithName(CLASS_QNAME);

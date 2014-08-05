@@ -117,6 +117,8 @@ public final class SynapseConstants {
     public static final String SYNAPSE_WSDL_RESOLVER = "synapse.wsdl.resolver";
     public static final String SYNAPSE_SCHEMA_RESOLVER = "synapse.schema.resolver";
 
+    public static final String DEFAULT_ARTIFACT_VERSION = "0.0.0";
+
     /** Parameter names in the axis2.xml that can be used to configure the synapse */
     public static final class Axis2Param {
         /** Synapse Configuration file location */

@@ -32,6 +32,7 @@ import org.apache.axis2.clustering.Member;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.SynapseException;
 import org.apache.synapse.config.xml.ValueFactory;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.XMLConfigConstants;
 import org.apache.synapse.endpoints.Endpoint;
 import org.apache.synapse.endpoints.RecipientListEndpoint;
@@ -81,6 +82,7 @@ public class RecipientListEndpointFactory extends EndpointFactory {
 
             if (name != null) {
             	recipientListEndpoint.setName(name.getAttributeValue());
+                recipientListEndpoint.configure(new VersionFactory().createVersionConfig(name.getAttributeValue(), epConfig));
             }
             
 			// set endpoints or members

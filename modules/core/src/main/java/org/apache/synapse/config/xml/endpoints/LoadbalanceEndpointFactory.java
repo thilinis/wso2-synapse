@@ -24,6 +24,7 @@ import org.apache.axiom.om.OMElement;
 import org.apache.axis2.clustering.Member;
 import org.apache.synapse.SynapseConstants;
 import org.apache.synapse.SynapseException;
+import org.apache.synapse.config.xml.VersionFactory;
 import org.apache.synapse.config.xml.endpoints.utils.LoadbalanceAlgorithmFactory;
 import org.apache.synapse.config.xml.XMLConfigConstants;
 import org.apache.synapse.endpoints.Endpoint;
@@ -76,6 +77,7 @@ public final class LoadbalanceEndpointFactory extends EndpointFactory {
 
             if (name != null) {
                 loadbalanceEndpoint.setName(name.getAttributeValue());
+                loadbalanceEndpoint.configure(new VersionFactory().createVersionConfig(name.getAttributeValue(), epConfig));
             }
 
             LoadbalanceAlgorithm algorithm = null;

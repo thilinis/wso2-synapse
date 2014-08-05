@@ -22,6 +22,7 @@ import org.apache.synapse.SynapseException;
 import org.apache.synapse.core.SynapseEnvironment;
 import org.apache.synapse.message.processor.MessageProcessorConstants;
 import org.apache.synapse.message.processor.impl.ScheduledMessageProcessor;
+import org.apache.synapse.versioning.dispatch.DispatcherStrategy;
 import org.quartz.JobDataMap;
 
 import java.util.Map;
@@ -37,6 +38,10 @@ public class ScheduledMessageForwardingProcessor extends ScheduledMessageProcess
 
     private BlockingMsgSender sender = null;
     private MessageForwardingProcessorView view;
+    /**
+     * this handles the version based dispatching
+     */
+    private DispatcherStrategy messageStoreVersionHandler = null;
 
     @Override
     public void init(SynapseEnvironment se) {
@@ -50,7 +55,7 @@ public class ScheduledMessageForwardingProcessor extends ScheduledMessageProcess
 
         // register MBean
         org.apache.synapse.commons.jmx.MBeanRegistrar.getInstance().registerMBean(view,
-                "Message Forwarding Processor view", getName());
+                "Message Forwarding Processor view", getUUIDName());
     }
 
     @Override
